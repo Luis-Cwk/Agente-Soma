@@ -189,7 +189,6 @@ MIT License - See LICENSE file for details
 
 ---
 
-```
 **Questions?** See [SETUP.md](SETUP.md) for troubleshooting, or open an issue on GitHub.
 
 ```
@@ -205,7 +204,9 @@ MIT License - See LICENSE file for details
 
 ©2026 Petra. All rights reserved.
 
-### Laban Movement Analysis
+---
+
+## 🎓 Laban Movement Analysis
 
 8 movement qualities mapped to Effort dimensions:
 
