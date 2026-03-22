@@ -26,11 +26,15 @@ SomaAgent **watches humans move** → **understands how** → **decides what art
 
 ## 🎬 Live Demo
 
-[![Watch Demo Video](https://img.shields.io/badge/▶-Watch%20Demo%20Video-brightgreen?style=for-the-badge&logo=github)](https://github.com/Luis-Cwk/Agente-Soma/raw/master/videos/Somaagent-Petra.mp4)
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=ZuuyMiGLecs">
+    <img src="https://img.youtube.com/vi/ZuuyMiGLecs/maxresdefault.jpg" alt="SomaAgent Demo" width="100%">
+  </a>
+</div>
 
-**Real execution**: Motion capture → Laban analysis → AI art generation → NFT minting on Sepolia (7.3 MB)
+**Real execution**: Motion capture → Laban analysis → AI art generation → NFT minting on Sepolia
 
-*Video duration: ~1 min | Full autonomous pipeline in action*
+Click the image above to watch the full demo on YouTube ▶️
 
 ---
 
