@@ -2,7 +2,7 @@
 
 **Autonomous Motion Analysis Agent**
 
-Captures human movement, analyzes Laban effort, generates AI art, and mints NFTs on Sepolia blockchain — all automatically.
+Captures human movement, analyzes Laban effort, generates AI art, and mints NFTs on Base Mainnet — all automatically.
 
 > Built for [Synthesis Hackathon 2026](https://synthesis.md/) | Hackathon Team
 
@@ -32,7 +32,7 @@ SomaAgent **watches humans move** → **understands how** → **decides what art
   </a>
 </div>
 
-**Real execution**: Motion capture → Laban analysis → AI art generation → NFT minting on Sepolia
+**Real execution**: Motion capture → Laban analysis → AI art generation → NFT minting on Base Mainnet
 
 Click the image above to watch the full demo on YouTube ▶️
 
@@ -47,7 +47,7 @@ Click the image above to watch the full demo on YouTube ▶️
 | Open Track | $14,500 | ✅ Claiming |
 
 **Registration TX (ERC-8004):**  
-[0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0](https://sepolia.etherscan.io/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
+[0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0](https://basescan.org/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
 
 ## 🌐 Live Frontend
 
@@ -61,7 +61,7 @@ Click the image above to watch the full demo on YouTube ▶️
 ✅ **Laban Movement Analysis** (8 efforts: punch, float, wring, glide, slash, dab, press, shake)  
 ✅ **AI-Generated Art Titles** (Ollama Cloud LLM with fallback)  
 ✅ **Distributed Storage** (Pinata IPFS upload)  
-✅ **Blockchain Verification** (Sepolia testnet ERC-721)  
+✅ **Blockchain Verification** (Base Mainnet ERC-721)  
 ✅ **Hash Chain Logging** (ERC-8004 v1 agent receipt format)  
 ✅ **Web Dashboard** (live real-time UI at http://localhost:5000)  
 ✅ **Fully Autonomous** (zero human decisions after start)
@@ -88,8 +88,8 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and add:
 - **OLLAMA_API_KEY** (from ollama.com)
 - **PINATA_API_KEY** & **PINATA_SECRET_KEY** (from pinata.cloud)
-- **WALLET_PRIVATE_KEY** (your Sepolia test wallet)
-- **BASE_RPC_URL** (Sepolia RPC endpoint)
+- **WALLET_PRIVATE_KEY** (your Base Mainnet wallet)
+- **BASE_RPC_URL** (Base Mainnet RPC endpoint)
 
 See **[SETUP.md](SETUP.md)** for detailed instructions.
 
@@ -122,7 +122,7 @@ STATE
 ├── log_hash: SHA-256
 ├── prev_log_hash: SHA-256 (chain link)
 ├── ipfs_cid: str (Pinata CID)
-└── tx_hash: str (Sepolia tx)
+└── tx_hash: str (Base Mainnet tx)
 
 GRAPH FLOW
 perception → reasoning → log → publish → END
@@ -135,7 +135,7 @@ perception → reasoning → log → publish → END
 | **Perception** | Capture keypoints + classify Laban efforts | MediaPipe, 8-effort classifier |
 | **Reasoning** | Generate NFT metadata + minting decision | Ollama Cloud (glm-5 LLM) |
 | **Log** | Create ERC-8004 hash chain entry | SHA-256, JSON |
-| **Publish** | Upload to IPFS + mint NFT + record TX | Pinata, Web3.py, Sepolia |
+| **Publish** | Upload to IPFS + mint NFT + record TX | Pinata, Web3.py, Base Mainnet |
 
 ---
 
@@ -168,9 +168,9 @@ SomaAgent-v2/
 
 | Service | Purpose | Network | Status |
 |---------|---------|---------|---------|
-| **Sepolia RPC** | Transaction submission | Testnet | ✅ PublicNode |
+| **Base RPC** | Transaction submission | Mainnet | ✅ PublicNode |
 | **IPFS (Pinata)** | NFT metadata storage | Distributed | ✅ Free tier |
-| **ERC-721 Contract** | NFT minting | Sepolia | ✅ 0x3D1A31542D49b1759FBD1861991D1D6742C8d340 |
+| **ERC-721 Contract** | NFT minting | Base Mainnet | ✅ 0x3D1A31542D49b1759FBD1861991D1D6742C8d340 |
 | **ERC-8004 Logging** | Agent decision logs | JSON chain | ✅ SHA-256 hash |
 
 ---
@@ -205,7 +205,7 @@ SomaAgent-v2/
 }
 ```
 
-**View on Sepolia:** [39b1399bfa06c84e...](https://sepolia.etherscan.io/tx/39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc)  
+**View on Base Mainnet:** [0x39b1399bfa...](https://basescan.org/tx/0x39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc)  
 **Agent Log:** `agent_log_b3d56035.json`
 
 ---
@@ -215,8 +215,8 @@ SomaAgent-v2/
 - [Laban Movement Analysis](https://en.wikipedia.org/wiki/Laban_movement_analysis)
 - [MediaPipe Pose](https://developers.google.com/mediapipe/solutions/vision/pose_landmarker)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [ERC-8004 (Agents With Receipts)](https://erc-8004.example.com)
-- [Sepolia Testnet Faucet](https://www.sepoliafaucet.io)
+- [ERC-8004 (Agents With Receipts)](https://ethereum-magicians.org/t/eip-8004-agents-with-receipts/)
+- [Base Mainnet Faucet](https://portal.web3js.org/)
 
 ---
 
@@ -271,7 +271,7 @@ Every agent session produces a `logs/agent_log_[id].json`:
     "name": "SomaAgent",
     "version": "2.0.0",
     "team_id": "874d2679adae49f39a2812e6a66701c6",
-    "registration_tx": "0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0"
+    "registration_tx_base_mainnet": "0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0"
   },
   "session": { "id": "...", "pipeline": "perception → reasoning → log → publish" },
   "prev_log_hash": "3d61b13422705b10...",
@@ -377,4 +377,4 @@ python run_auto.py --duration 20 --auto-publish
 **Petra / Luis Betancourt**  
 [@luisbetx9](https://twitter.com/luisbetx9)  
 Wallet: `0x1A49138cCb61C50D72A44a299F6C74c690f6c67f`  
-Registration TX: [View on Sepolia](https://sepolia.etherscan.io/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
+Registration TX: [View on Base Mainnet](https://basescan.org/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
