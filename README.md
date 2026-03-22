@@ -42,9 +42,12 @@ Click the image above to watch the full demo on YouTube ▶️
 
 | Bounty | Prize | Status |
 |--------|-------|--------|
-| ERC-8004 "Agents With Receipts" | $8,004 | ✅ Claiming |
-| Let the Agent Cook | $8,000 | ✅ Claiming |
 | Open Track | $14,500 | ✅ Claiming |
+| Let the Agent Cook | $8,000 | ✅ Claiming |
+| ERC-8004 "Agents With Receipts" | $8,004 | ✅ Claiming |
+| SuperRare Partner Track | $2,500 | ✅ Claiming |
+
+**Total Prize Pool: $33,004**
 
 **Registration TX (ERC-8004):**  
 [0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0](https://basescan.org/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
@@ -63,6 +66,7 @@ Click the image above to watch the full demo on YouTube ▶️
 ✅ **Distributed Storage** (Pinata IPFS upload)  
 ✅ **Blockchain Verification** (Base Mainnet ERC-721)  
 ✅ **Hash Chain Logging** (ERC-8004 v1 agent receipt format)  
+✅ **SuperRare Auctions** (Rare Protocol integration via SuperRareBazaar)  
 ✅ **Web Dashboard** (live real-time UI at http://localhost:5000)  
 ✅ **Fully Autonomous** (zero human decisions after start)
 
@@ -172,6 +176,7 @@ SomaAgent-v2/
 | **IPFS (Pinata)** | NFT metadata storage | Distributed | ✅ Free tier |
 | **ERC-721 Contract** | NFT minting | Base Mainnet | ✅ 0x3D1A31542D49b1759FBD1861991D1D6742C8d340 |
 | **ERC-8004 Logging** | Agent decision logs | JSON chain | ✅ SHA-256 hash |
+| **Rare Protocol (SuperRare)** | NFT auctions | SuperRareBazaar | ✅ Optional, set `AUCTION_ENABLED=true` |
 
 ---
 
@@ -366,6 +371,14 @@ python run_auto.py --duration 20 --auto-publish
 
 **Sample agent log (ERC-8004):**  
 [View on IPFS](https://black-persistent-fly-380.mypinata.cloud/ipfs/QmWeMVfyJGjxDbACGN2h8DEHqahb9QAFeyHseBiGmQpdmQ)
+
+**SuperRare Integration:**  
+Set `AUCTION_ENABLED=true` in `.env` to enable automatic auction creation via Rare Protocol (SuperRareBazaar). The agent will:
+1. Mint NFT on Base Mainnet
+2. Approve SuperRareBazaar contract for NFT transfer
+3. Create auction with configurable starting price and duration
+
+Qualifies for **SuperRare Partner Track** bounty at Synthesis.
 
 ---
 
