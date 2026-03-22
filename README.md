@@ -334,7 +334,7 @@ python run_auto.py --duration 20 --auto-publish
 [Live Demo](https://skill-deploy-o8dmn73huw.vercel.app/)
 
 **Sample agent log (ERC-8004):**  
-[View on IPFS](ipfs://PLACEHOLDER)
+[View on IPFS](https://black-persistent-fly-380.mypinata.cloud/ipfs/QmWeMVfyJGjxDbACGN2h8DEHqahb9QAFeyHseBiGmQpdmQ)
 
 ---
 
