@@ -331,7 +331,7 @@ python run_auto.py --duration 20 --auto-publish
 ## 🎬 Demo & Resources
 
 **Watch the agent run autonomously:**  
-[Video Demo](https://youtu.be/PLACEHOLDER) ← *replace with actual recording*
+[Live Demo](https://skill-deploy-o8dmn73huw.vercel.app/)
 
 **Live frontend (NFT viewer):**  
 [videodanza-nft.vercel.app](https://videodanza-nft.vercel.app)
