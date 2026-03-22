@@ -146,30 +146,36 @@ SomaAgent-v2/
 
 ## 📊 Example Flow
 
-**Input:** Human dances for 15 seconds
+**Input:** Human movement capture (361 frames, 15 seconds)
 
 **Output:**
 ```json
 {
-  "movement": "sacudir",
-  "confidence": 0.179,
+  "movement": "flotar",
+  "confidence": 0.175,
   "laban_scores": {
-    "tocar": 0.167,
-    "sacudir": 0.179,
-    "cortar": 0.162
+    "golpear": 0.06,
+    "flotar": 0.175,
+    "deslizar": 0.116,
+    "cortar": 0.142,
+    "presionar": 0.063,
+    "retorcer": 0.122,
+    "sacudir": 0.172,
+    "tocar": 0.15
   },
-  "nft_title": "Trembling Energy",
-  "nft_description": "Rapid vibrations releasing tension and kinetic power.",
-  "keywords": ["vibration", "kinetic", "embodied", "laban"],
+  "nft_title": "Weightless Drift",
+  "nft_description": "Dynamic, weightless movement embodying the essence of flotar.",
+  "keywords": ["flotar", "kinetic", "embodied", "laban"],
   "emotion": "dynamic",
-  "ipfs_url": "ipfs://QmUDXMX5nAt4Vy38giLGbBECjcT9ZT6PNq1NAEGFycrjwT",
-  "tx_hash": "0xb54296fe43fa45a5f872b4205a854416167bb348c11fc406f1276b96d225c780",
-  "log_hash": "0x2f75f3da79e738ca...e846cc1b",
-  "prev_log_hash": "0x1f7682b6..."
+  "ipfs_cid": "QmSomaWeightless Drift",
+  "tx_hash": "39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc",
+  "log_hash": "6454f47fad3fb860...fc43c60a",
+  "session_id": "b3d56035-153f-47bd-b213-d3b91584ec4a"
 }
 ```
 
-View on Sepolia: https://sepolia.etherscan.io/tx/0xb54296fe43fa45a5f872b4205a854416167bb348c11fc406f1276b96d225c780
+**View on Sepolia:** [39b1399bfa06c84e...](https://sepolia.etherscan.io/tx/39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc)  
+**Agent Log:** `agent_log_b3d56035.json`
 
 ---
 
