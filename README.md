@@ -189,6 +189,7 @@ MIT License - See LICENSE file for details
 
 ---
 
+```
 **Questions?** See [SETUP.md](SETUP.md) for troubleshooting, or open an issue on GitHub.
 
 ```
