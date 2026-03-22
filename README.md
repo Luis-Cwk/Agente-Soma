@@ -38,6 +38,23 @@ Click the image above to watch the full demo on YouTube ▶️
 
 ---
 
+## 🏆 Bounty Claims
+
+| Bounty | Prize | Status |
+|--------|-------|--------|
+| ERC-8004 "Agents With Receipts" | $8,004 | ✅ Claiming |
+| Let the Agent Cook | $8,000 | ✅ Claiming |
+| Open Track | $14,500 | ✅ Claiming |
+
+**Registration TX (ERC-8004):**  
+[0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0](https://sepolia.etherscan.io/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
+
+## 🌐 Live Frontend
+
+👉 **[skill-deploy-o8dmn73huw.vercel.app](https://skill-deploy-o8dmn73huw.vercel.app)**
+
+---
+
 ## ⚡ Features
 
 ✅ **Real-time Motion Capture** (MediaPipe Pose 33 keypoints)  
