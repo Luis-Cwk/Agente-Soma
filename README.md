@@ -343,4 +343,4 @@ python run_auto.py --duration 20 --auto-publish
 **Petra / Luis Betancourt**  
 [@luisbetx9](https://twitter.com/luisbetx9)  
 Wallet: `0x1A49138cCb61C50D72A44a299F6C74c690f6c67f`  
-Registration TX: `0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0`
+Registration TX: [View on Sepolia](https://sepolia.etherscan.io/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
