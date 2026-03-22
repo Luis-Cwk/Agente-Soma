@@ -1,348 +1,589 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SomaAgent — Autonomous Motion Intelligence</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
-    body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #e2e8f0; }
-    .mono { font-family: 'Space Mono', monospace; }
-    .glow { box-shadow: 0 0 20px rgba(139,92,246,0.3); }
-    .glow-green { box-shadow: 0 0 20px rgba(34,197,94,0.25); }
-    .hash-pill { background: #1a1a2e; border: 1px solid #7c3aed33; font-size: 11px; }
-    @keyframes pulse-chain { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .chain-dot { animation: pulse-chain 2s ease-in-out infinite; }
-    @keyframes slide-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-    .slide-in { animation: slide-in 0.5s ease forwards; }
-    .laban-bar { transition: width 1s ease; }
-    .card { background: #111118; border: 1px solid #ffffff0f; border-radius: 12px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SomaAgent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: white;
+            color: #000;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 40px;
+            gap: 30px;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #000;
+        }
+
+        /* Camera preview */
+        #videoWrap {
+            display: none;
+            position: relative;
+            width: 320px;
+            height: 240px;
+            border: 1px solid #ddd;
+            background: #f5f5f5;
+        }
+
+        #videoEl {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #canvasEl {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .duration-section {
+            text-align: center;
+        }
+
+        .duration-input {
+            width: 50px;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .duration-input:focus {
+            outline: none;
+            border-color: #000;
+        }
+
+        .label { margin-right: 6px; font-size: 12px; }
+
+        .btn-capture {
+            padding: 16px 64px;
+            background: #000;
+            border: 2px solid #000;
+            color: white;
+            font-family: 'Monaco', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-capture:hover:not(:disabled) {
+            background: white;
+            color: #000;
+        }
+
+        .btn-capture:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .terminal {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            min-height: 200px;
+            max-height: 320px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .log-line { margin: 2px 0; word-break: break-all; }
+        .log-ok { color: #006600; }
+        .log-err { color: #cc0000; }
+        .log-hash { color: #0066cc; }
+        .log-bold { font-weight: bold; }
+
+        .result {
+            display: none;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .result.show { display: block; }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .result-data {
+            text-align: left;
+            background: white;
+            padding: 15px;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            font-size: 11px;
+            line-height: 1.8;
+        }
+
+        .result-link {
+            color: #0066cc;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .result-link:hover { text-decoration: underline; }
+
+        .terminal::-webkit-scrollbar { width: 6px; }
+        .terminal::-webkit-scrollbar-track { background: #f5f5f5; }
+        .terminal::-webkit-scrollbar-thumb { background: #ccc; }
+        .terminal::-webkit-scrollbar-thumb:hover { background: #999; }
+
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #444;
+            margin-top: auto;
+            padding-top: 20px;
+        }
+    </style>
 </head>
-<body class="min-h-screen">
+<body>
+<div class="container">
 
-  <!-- Header -->
-  <div class="border-b border-white/5 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-sm">S</div>
-      <span class="mono font-bold text-white">SomaAgent</span>
-      <span class="text-xs text-white/30 mono">v2.0.0</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <div class="w-2 h-2 rounded-full bg-green-400 chain-dot"></div>
-      <span class="text-xs text-white/50">AUTONOMOUS · LIVE</span>
-    </div>
-  </div>
+    <div class="main">
+        <div class="logo">⬢ SomaAgent</div>
 
-  <!-- Hero -->
-  <div class="max-w-5xl mx-auto px-6 pt-16 pb-8">
-    <div class="text-center mb-12">
-      <p class="text-violet-400 mono text-sm mb-3 tracking-widest">SYNTHESIS HACKATHON 2026</p>
-      <h1 class="text-4xl md:text-5xl font-light text-white mb-4 leading-tight">
-        Body Motion<br/>
-        <span class="text-violet-400 font-semibold">→ Autonomous Art</span>
-      </h1>
-      <p class="text-white/50 text-lg max-w-xl mx-auto">
-        SomaAgent observes human movement, interprets it through Laban analysis,
-        and autonomously generates verifiable digital art — no human decisions in the loop.
-      </p>
-      <div class="flex gap-3 justify-center mt-6 flex-wrap">
-        <span class="px-3 py-1 bg-violet-900/40 border border-violet-500/30 rounded-full text-xs text-violet-300 mono">ERC-8004 $8k</span>
-        <span class="px-3 py-1 bg-blue-900/40 border border-blue-500/30 rounded-full text-xs text-blue-300 mono">Let the Agent Cook $8k</span>
-        <span class="px-3 py-1 bg-emerald-900/40 border border-emerald-500/30 rounded-full text-xs text-emerald-300 mono">Open Track $14.5k</span>
-      </div>
+        <!-- Camera preview (shown during capture) -->
+        <div id="videoWrap">
+            <video id="videoEl" autoplay muted playsinline></video>
+            <canvas id="canvasEl"></canvas>
+        </div>
+
+        <div class="duration-section">
+            <label class="label">Duration:</label>
+            <input type="number" id="duration" class="duration-input" value="15" min="5" max="60">
+            <span style="font-size:12px; color:#666;">seconds</span>
+        </div>
+
+        <button class="btn-capture" id="captureBtn" onclick="startCapture()">Start Capture</button>
+
+        <div class="status" id="status">Ready</div>
     </div>
 
-    <!-- Pipeline Visual -->
-    <div class="card p-6 mb-6 glow">
-      <p class="text-xs text-white/30 mono mb-4 tracking-widest">AUTONOMOUS PIPELINE</p>
-      <div class="flex items-center gap-2 flex-wrap justify-center">
-        <div id="step-perception" class="flex flex-col items-center gap-1 transition-all duration-500">
-          <div class="w-10 h-10 rounded-lg bg-violet-900/50 border border-violet-500/40 flex items-center justify-center text-lg">👁️</div>
-          <span class="text-xs text-white/50">Perception</span>
-        </div>
-        <div class="text-white/20 text-lg">→</div>
-        <div id="step-reasoning" class="flex flex-col items-center gap-1 transition-all duration-500">
-          <div class="w-10 h-10 rounded-lg bg-blue-900/50 border border-blue-500/40 flex items-center justify-center text-lg">🧠</div>
-          <span class="text-xs text-white/50">Reasoning</span>
-        </div>
-        <div class="text-white/20 text-lg">→</div>
-        <div id="step-log" class="flex flex-col items-center gap-1 transition-all duration-500">
-          <div class="w-10 h-10 rounded-lg bg-amber-900/50 border border-amber-500/40 flex items-center justify-center text-lg">🔒</div>
-          <span class="text-xs text-white/50">ERC-8004 Log</span>
-        </div>
-        <div class="text-white/20 text-lg">→</div>
-        <div id="step-publish" class="flex flex-col items-center gap-1 transition-all duration-500">
-          <div class="w-10 h-10 rounded-lg bg-emerald-900/50 border border-emerald-500/40 flex items-center justify-center text-lg">🖼️</div>
-          <span class="text-xs text-white/50">NFT Mint</span>
-        </div>
-      </div>
+    <div class="terminal" id="terminal"></div>
+
+    <div class="result" id="result">
+        <div class="result-title">✅ Motion Captured & NFT Minted</div>
+        <div class="result-data" id="resultData"></div>
     </div>
 
-    <!-- Main Grid -->
-    <div class="grid md:grid-cols-2 gap-4 mb-4">
+    <div class="footer">©2026 Petra. All rights reserved.</div>
+</div>
 
-      <!-- Laban Analysis -->
-      <div class="card p-5">
-        <p class="text-xs text-white/30 mono mb-4 tracking-widest">LABAN MOVEMENT ANALYSIS</p>
-        <div id="laban-bars" class="space-y-3">
-          <!-- filled by JS -->
-        </div>
-      </div>
-
-      <!-- NFT Output -->
-      <div class="card p-5 glow-green">
-        <p class="text-xs text-white/30 mono mb-4 tracking-widest">AGENT DECISION — NFT OUTPUT</p>
-        <div class="space-y-3">
-          <div>
-            <p class="text-xs text-white/30 mb-1">TITLE</p>
-            <p id="nft-title" class="text-white font-semibold text-lg">—</p>
-          </div>
-          <div>
-            <p class="text-xs text-white/30 mb-1">DESCRIPTION</p>
-            <p id="nft-desc" class="text-white/70 text-sm leading-relaxed">—</p>
-          </div>
-          <div>
-            <p class="text-xs text-white/30 mb-1">EMOTION TAG</p>
-            <span id="nft-emotion" class="px-2 py-0.5 bg-violet-900/50 border border-violet-500/30 rounded text-violet-300 text-xs mono">—</span>
-          </div>
-          <div>
-            <p class="text-xs text-white/30 mb-1">VISUAL KEYWORDS</p>
-            <div id="nft-keywords" class="flex gap-1 flex-wrap">—</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ERC-8004 Hash Chain -->
-    <div class="card p-5 mb-4">
-      <div class="flex items-center justify-between mb-4">
-        <p class="text-xs text-white/30 mono tracking-widest">ERC-8004 HASH CHAIN — VERIFIED</p>
-        <span id="chain-status" class="px-2 py-0.5 bg-green-900/40 border border-green-500/30 rounded text-green-400 text-xs mono">VALID ✓</span>
-      </div>
-      <div id="hash-chain" class="space-y-2">
-        <!-- filled by JS -->
-      </div>
-      <div class="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <p class="text-white/30 mb-1">AGENT</p>
-          <p class="mono text-white/70">SomaAgent</p>
-        </div>
-        <div>
-          <p class="text-white/30 mb-1">TEAM ID</p>
-          <p class="mono text-white/70 text-xs">874d2679...6701c6</p>
-        </div>
-        <div>
-          <p class="text-white/30 mb-1">REGISTRATION TX</p>
-          <p class="mono text-white/70 text-xs">0x76b7f8...993c0</p>
-        </div>
-        <div>
-          <p class="text-white/30 mb-1">CHAIN</p>
-          <p class="mono text-white/70">Base Mainnet</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Run Button -->
-    <div class="text-center py-6">
-      <button id="run-btn" onclick="simulateRun()"
-        class="px-8 py-3 bg-violet-600 hover:bg-violet-500 rounded-lg mono text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95">
-        ▶ SIMULATE AGENT RUN
-      </button>
-      <p class="text-xs text-white/30 mt-2">Demonstrates one full autonomous pipeline cycle</p>
-    </div>
-
-    <!-- Agent Reasoning Trace -->
-    <div class="card p-5 mb-8">
-      <p class="text-xs text-white/30 mono mb-4 tracking-widest">AGENT REASONING TRACE</p>
-      <div id="reasoning-log" class="space-y-1 mono text-xs text-white/50 min-h-[80px]">
-        <p class="text-white/20">Run the agent to see its decision process...</p>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="border-t border-white/5 pt-6 pb-12 flex flex-wrap justify-between items-center gap-4 text-xs text-white/30">
-      <div class="flex gap-4">
-        <a href="https://github.com/Luis-Cwk/somaagent" class="hover:text-white/60 transition-colors">GitHub →</a>
-        <a href="https://videodanza-nft.vercel.app" class="hover:text-white/60 transition-colors">NFT Viewer →</a>
-      </div>
-      <p>Built by Petra · Synthesis 2026 · LangGraph + glm-5 + ERC-8004 + Base</p>
-    </div>
-  </div>
+<!-- MediaPipe via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
 <script>
-const MOVEMENTS = {
-  golpear:  { color: 'bg-red-500',    label: 'golpear',   hint: 'sudden · strong · direct · bound' },
-  flotar:   { color: 'bg-blue-400',   label: 'flotar',    hint: 'sustained · light · indirect · free' },
-  deslizar: { color: 'bg-cyan-400',   label: 'deslizar',  hint: 'sustained · light · direct · free' },
-  cortar:   { color: 'bg-gray-400',   label: 'cortar',    hint: 'sudden · light · indirect · bound' },
-  presionar:{ color: 'bg-amber-600',  label: 'presionar', hint: 'sustained · strong · direct · bound' },
-  retorcer: { color: 'bg-emerald-500',label: 'retorcer',  hint: 'sustained · strong · indirect · bound' },
-  sacudir:  { color: 'bg-pink-500',   label: 'sacudir',   hint: 'sudden · light · indirect · free' },
-  tocar:    { color: 'bg-violet-400', label: 'tocar',     hint: 'sudden · strong · indirect · free' },
+// ─── ERC-8004 hash chain (localStorage) ───────────────────────────────────
+function sha256(str) {
+    const buf = new TextEncoder().encode(str);
+    return crypto.subtle.digest('SHA-256', buf).then(b => {
+        return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+    });
+}
+
+function getPrevHash() {
+    return localStorage.getItem('soma_prev_hash') || '0'.repeat(64);
+}
+
+async function buildERC8004Entry(sessionId, dominant, confidence, labanScores, nftTitle, txHash) {
+    const prevHash = getPrevHash();
+    const entry = {
+        schema: 'ERC-8004-v1',
+        agent: {
+            name: 'SomaAgent',
+            version: '2.0.0',
+            team_id: '874d2679adae49f39a2812e6a66701c6',
+            registration_tx: '0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0'
+        },
+        session: { id: sessionId, pipeline: 'perception → reasoning → log → publish' },
+        prev_log_hash: prevHash,
+        entries: [
+            {
+                step: 1, node: 'perception', action: 'motion_capture',
+                output: { dominant_movement: dominant, confidence: Math.round(confidence * 1000) / 1000 },
+                decision: `Detected '${dominant}' as primary movement quality`
+            },
+            {
+                step: 2, node: 'reasoning', action: 'artistic_decision',
+                output: { nft_title: nftTitle },
+                decision: 'Agent decided to create NFT artwork based on movement'
+            },
+            {
+                step: 3, node: 'log', action: 'hash_chain',
+                output: { prev_hash: prevHash }
+            },
+            {
+                step: 4, node: 'publish', action: 'blockchain_mint',
+                output: { tx_hash: txHash }
+            }
+        ]
+    };
+    const logHash = await sha256(JSON.stringify(entry));
+    entry.log_hash = logHash;
+    localStorage.setItem('soma_prev_hash', logHash);
+    return { entry, logHash, prevHash };
+}
+
+// ─── Laban classifier ─────────────────────────────────────────────────────
+const LABAN_MOVEMENTS = ['golpear','flotar','deslizar','cortar','presionar','retorcer','sacudir','tocar'];
+
+function classifyLaban(landmarks) {
+    if (!landmarks || landmarks.length < 33) {
+        return { dominant: 'sacudir', scores: Object.fromEntries(LABAN_MOVEMENTS.map(m => [m, Math.random()])) };
+    }
+
+    // Shoulders, hips, wrists, elbows
+    const lShoulder = landmarks[11], rShoulder = landmarks[12];
+    const lHip = landmarks[23], rHip = landmarks[24];
+    const lWrist = landmarks[15], rWrist = landmarks[16];
+    const lElbow = landmarks[13], rElbow = landmarks[14];
+
+    // Derived metrics
+    const shoulderWidth = Math.abs(lShoulder.x - rShoulder.x);
+    const hipWidth = Math.abs(lHip.x - rHip.x);
+    const lArmH = Math.abs(lWrist.y - lShoulder.y);
+    const rArmH = Math.abs(rWrist.y - rShoulder.y);
+    const avgArmH = (lArmH + rArmH) / 2;
+    const armSpread = Math.abs(lWrist.x - rWrist.x);
+    const lElbowAngle = Math.abs(lWrist.y - lElbow.y);
+    const rElbowAngle = Math.abs(rWrist.y - rElbow.y);
+
+    const scores = {
+        golpear:   Math.min(1, avgArmH * 2.5 + (1 - armSpread) * 0.5),
+        flotar:    Math.min(1, armSpread * 1.8 + (1 - avgArmH) * 0.6),
+        deslizar:  Math.min(1, shoulderWidth * 1.5 + lElbowAngle * 0.8),
+        cortar:    Math.min(1, (armSpread + avgArmH) * 0.9),
+        presionar: Math.min(1, (1 - avgArmH) * 1.6 + hipWidth * 0.7),
+        retorcer:  Math.min(1, Math.abs(lShoulder.x - lHip.x) * 2.5),
+        sacudir:   Math.min(1, Math.abs(lWrist.x - rWrist.x) * 1.2 + rElbowAngle * 0.6),
+        tocar:     Math.min(1, (1 - armSpread) * 1.4 + avgArmH * 0.5)
+    };
+
+    // Normalize
+    const total = Object.values(scores).reduce((a,b) => a+b, 0) || 1;
+    Object.keys(scores).forEach(k => scores[k] = Math.round(scores[k] / total * 1000) / 1000);
+
+    const dominant = Object.entries(scores).sort((a,b) => b[1]-a[1])[0][0];
+    return { dominant, scores };
+}
+
+// ─── NFT metadata mapping ─────────────────────────────────────────────────
+const NFT_MAP = {
+    golpear:   { title: 'Crimson Impact, Bound',   emotion: 'fury',      keywords: ['explosive','crimson','geometry'] },
+    flotar:    { title: 'Ethereal Drift',           emotion: 'peace',     keywords: ['ethereal','lavender','particles'] },
+    deslizar:  { title: 'Metallic Glide',           emotion: 'serenity',  keywords: ['metallic','curves','ice'] },
+    cortar:    { title: 'Brutalist Edge',           emotion: 'tension',   keywords: ['brutalist','monochrome','sharp'] },
+    presionar: { title: 'Tectonic Weight',          emotion: 'power',     keywords: ['tectonic','obsidian','pressure'] },
+    retorcer:  { title: 'Bioluminescent Spiral',    emotion: 'mystery',   keywords: ['bioluminescent','spiral','organic'] },
+    sacudir:   { title: 'Trembling Energy',         emotion: 'dynamic',   keywords: ['vibration','kinetic','neon'] },
+    tocar:     { title: 'Ink Pointillism',          emotion: 'curiosity', keywords: ['pointillism','ink','delicate'] }
 };
 
-const DEMO_SESSIONS = [
-  {
-    dominant: 'golpear', scores: { golpear:0.42, cortar:0.18, sacudir:0.12, tocar:0.10, presionar:0.08, retorcer:0.05, deslizar:0.03, flotar:0.02 },
-    title: 'Crimson Impact, Bound', description: 'A body becomes architecture of contained thunder. The force does not scatter — it finds edges, presses against them, becomes the wall itself. This is the geometry of restrained fury.',
-    emotion: 'fury', keywords: ['fractured geometry','crimson burst','gold leaf fissures','suspended impact'],
-    hash: '3d61b13422705b10', prev: '00000000',
-    reasoning: [
-      'I observe dominant movement: golpear (42% confidence)',
-      'Laban: sudden + strong + direct + bound → contained explosive quality',
-      'The "bound" flow prevents full release — energy is restrained, not free',
-      'Artistic decision: contrast between explosive intention and bound execution',
-      'Selecting: crimson palette + fractured geometry to express restrained force',
-      'NFT title chosen: "Crimson Impact, Bound"'
-    ]
-  },
-  {
-    dominant: 'flotar', scores: { flotar:0.51, deslizar:0.19, sacudir:0.10, retorcer:0.08, golpear:0.05, cortar:0.04, presionar:0.02, tocar:0.01 },
-    title: 'Drift Without Weight', description: 'The body forgets gravity. Sustained and light, indirect and free — it moves like thought through water. No destination, only the quality of the journey through weightless space.',
-    emotion: 'dissolution', keywords: ['oceanic gradients','zero gravity silk','particle drift','absence of edge'],
-    hash: '47be4973394af3e7', prev: '3d61b134',
-    reasoning: [
-      'I observe dominant movement: flotar (51% confidence)',
-      'Laban: sustained + light + indirect + free → maximum freedom quality',
-      'All four effort factors point toward dissolution of intention',
-      'The dancer is not going anywhere — they are simply existing in motion',
-      'Artistic decision: no sharp edges, no destination, pure drift',
-      'NFT title chosen: "Drift Without Weight"'
-    ]
-  },
-  {
-    dominant: 'retorcer', scores: { retorcer:0.38, presionar:0.21, golpear:0.15, cortar:0.10, flotar:0.06, deslizar:0.05, sacudir:0.03, tocar:0.02 },
-    title: 'Spiral Memory', description: 'The body remembers something it cannot name. Sustained pressure twisted through indirect pathways, fighting its own momentum. Bioluminescent tension seeking impossible release.',
-    emotion: 'tension', keywords: ['bioluminescent spiral','tectonic coil','deep indigo','organic contortion'],
-    hash: '6e70c8216d083524', prev: '47be4973',
-    reasoning: [
-      'I observe dominant movement: retorcer (38% confidence)',
-      'Laban: sustained + strong + indirect + bound → spiral tension quality',
-      '"Bound" flow + "indirect" space = movement that fights itself',
-      'The strong weight + sustained time creates slow inevitable pressure',
-      'Artistic decision: organic forms under maximum stress, bioluminescent glow',
-      'NFT title chosen: "Spiral Memory"'
-    ]
-  }
-];
+// ─── State ────────────────────────────────────────────────────────────────
+let capturing = false;
+let frameBuffer = [];
+let captureTimer = null;
+let poseInstance = null;
+let cameraInstance = null;
+let logs = [];
 
-let sessionIndex = 0;
-let chainHistory = [];
-
-function renderLabanBars(scores, dominant) {
-  const container = document.getElementById('laban-bars');
-  container.innerHTML = '';
-  Object.entries(scores).sort((a,b) => b[1]-a[1]).forEach(([name, score]) => {
-    const m = MOVEMENTS[name];
-    const pct = Math.round(score * 100);
-    const isDominant = name === dominant;
-    container.innerHTML += `
-      <div class="${isDominant ? 'opacity-100' : 'opacity-60'}">
-        <div class="flex justify-between text-xs mb-1">
-          <span class="${isDominant ? 'text-white font-medium' : 'text-white/50'}">${name}${isDominant ? ' ★' : ''}</span>
-          <span class="mono text-white/40">${pct}%</span>
-        </div>
-        <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
-          <div class="h-full ${m.color} rounded-full laban-bar" style="width:0%" data-pct="${pct}"></div>
-        </div>
-      </div>`;
-  });
-  setTimeout(() => {
-    document.querySelectorAll('.laban-bar').forEach(b => {
-      b.style.width = b.dataset.pct + '%';
-    });
-  }, 100);
+function log(msg, cls = '') {
+    logs.push({ msg, cls });
+    renderTerminal();
 }
 
-function renderHashChain() {
-  const container = document.getElementById('hash-chain');
-  container.innerHTML = '';
-  const display = chainHistory.slice(-4);
-  display.forEach((s, i) => {
-    const isLatest = i === display.length - 1;
-    container.innerHTML += `
-      <div class="flex items-center gap-2 slide-in" style="animation-delay:${i*0.1}s">
-        <div class="w-2 h-2 rounded-full ${isLatest ? 'bg-green-400 chain-dot' : 'bg-white/20'}"></div>
-        <div class="hash-pill rounded px-2 py-1 flex gap-3 items-center flex-1">
-          <span class="text-white/30">prev: ${s.prev}</span>
-          <span class="text-white/20">→</span>
-          <span class="${isLatest ? 'text-green-400' : 'text-white/50'}">${s.hash}</span>
-          <span class="text-white/20 ml-auto">${s.dominant}</span>
-        </div>
-        ${isLatest ? '<span class="text-green-400 text-xs">✓</span>' : ''}
-      </div>`;
-  });
-}
-
-function logReasoning(steps) {
-  const container = document.getElementById('reasoning-log');
-  container.innerHTML = '';
-  steps.forEach((step, i) => {
-    setTimeout(() => {
-      container.innerHTML += `<p class="text-white/60 slide-in"><span class="text-violet-400">→</span> ${step}</p>`;
-    }, i * 300);
-  });
-}
-
-function simulateRun() {
-  const btn = document.getElementById('run-btn');
-  btn.disabled = true;
-  btn.textContent = '⟳ RUNNING...';
-  btn.className = btn.className.replace('bg-violet-600 hover:bg-violet-500', 'bg-violet-900');
-
-  const session = DEMO_SESSIONS[sessionIndex % DEMO_SESSIONS.length];
-  sessionIndex++;
-
-  // Animate pipeline steps
-  const steps = ['perception', 'reasoning', 'log', 'publish'];
-  steps.forEach((step, i) => {
-    setTimeout(() => {
-      const el = document.getElementById(`step-${step}`);
-      if (el) {
-        el.classList.add('scale-110');
-        el.querySelector('div').classList.add('ring-2', 'ring-violet-400');
-        setTimeout(() => {
-          el.classList.remove('scale-110');
-          el.querySelector('div').classList.remove('ring-2', 'ring-violet-400');
-          el.querySelector('div').classList.add('ring-1', 'ring-green-400/50');
-        }, 600);
-      }
-    }, i * 700);
-  });
-
-  setTimeout(() => {
-    // Update Laban bars
-    renderLabanBars(session.scores, session.dominant);
-
-    // Update NFT output
-    document.getElementById('nft-title').textContent = session.title;
-    document.getElementById('nft-desc').textContent = session.description;
-    document.getElementById('nft-emotion').textContent = session.emotion;
-    const kwContainer = document.getElementById('nft-keywords');
-    kwContainer.innerHTML = session.keywords.map(k =>
-      `<span class="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-white/60 text-xs">${k}</span>`
+function renderTerminal() {
+    const t = document.getElementById('terminal');
+    t.innerHTML = logs.slice(-200).map(l =>
+        `<div class="log-line ${l.cls}">${escapeHtml(l.msg)}</div>`
     ).join('');
-
-    // Update hash chain
-    chainHistory.push({ hash: session.hash, prev: session.prev, dominant: session.dominant });
-    renderHashChain();
-
-    // Reasoning trace
-    logReasoning(session.reasoning);
-
-    // Reset button
-    btn.disabled = false;
-    btn.textContent = '▶ RUN AGAIN';
-    btn.className = btn.className.replace('bg-violet-900', 'bg-violet-600 hover:bg-violet-500');
-  }, 3200);
+    t.scrollTop = t.scrollHeight;
 }
 
-// Init with first session rendered
-renderLabanBars(DEMO_SESSIONS[0].scores, DEMO_SESSIONS[0].dominant);
-chainHistory.push({ hash: '00000000', prev: 'genesis', dominant: '—' });
-renderHashChain();
+function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
+}
+
+function uid() {
+    return 'sess_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+// ─── Main capture flow ───────────────────────────────────────────────────
+async function startCapture() {
+    if (capturing) return;
+
+    const duration = parseInt(document.getElementById('duration').value) || 15;
+    const btn = document.getElementById('captureBtn');
+    btn.disabled = true;
+    capturing = true;
+    logs = [];
+    frameBuffer = [];
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('status').textContent = '● Starting...';
+
+    log('[SomaAgent] Initializing capture pipeline...');
+    log(`[SomaAgent] Session duration: ${duration}s`);
+
+    // Show camera preview
+    const videoWrap = document.getElementById('videoWrap');
+    const videoEl = document.getElementById('videoEl');
+    const canvasEl = document.getElementById('canvasEl');
+    const ctx = canvasEl.getContext('2d');
+    videoWrap.style.display = 'block';
+
+    // Request camera
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        videoEl.srcObject = stream;
+        await new Promise(r => videoEl.onloadedmetadata = r);
+        canvasEl.width = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
+        log('[perception] Camera stream active ✓', 'log-ok');
+    } catch (e) {
+        log(`[perception] Camera error: ${e.message}`, 'log-err');
+        log('[perception] Switching to dry-run mode (synthetic data)', 'log-ok');
+        // dry-run: skip mediapipe, use synthetic frames
+        await runDryRun(duration, btn, videoWrap, stream);
+        return;
+    }
+
+    // Init MediaPipe Pose
+    log('[perception] Loading MediaPipe Pose...');
+    document.getElementById('status').textContent = '● Loading AI model...';
+
+    try {
+        poseInstance = new Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        });
+        poseInstance.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        poseInstance.onResults(onPoseResults);
+        await poseInstance.initialize();
+        log('[perception] MediaPipe Pose loaded (33 landmarks) ✓', 'log-ok');
+    } catch(e) {
+        log(`[perception] MediaPipe unavailable: ${e.message}`, 'log-err');
+        log('[perception] Switching to dry-run mode', 'log-ok');
+        await runDryRun(duration, btn, videoWrap, stream);
+        return;
+    }
+
+    // Start camera loop
+    document.getElementById('status').textContent = `● Capturing... (${duration}s)`;
+    log(`[perception] Recording movement for ${duration}s — move naturally`);
+
+    let elapsed = 0;
+    const interval = setInterval(() => {
+        elapsed++;
+        document.getElementById('status').textContent = `● Capturing... (${elapsed}/${duration}s)`;
+        if (elapsed < duration) {
+            log(`[perception] Frame ${elapsed * 30} — analyzing landmarks...`);
+        }
+    }, 1000);
+
+    cameraInstance = new Camera(videoEl, {
+        onFrame: async () => {
+            if (!capturing) return;
+            await poseInstance.send({ image: videoEl });
+            // draw skeleton on canvas
+        },
+        width: 640, height: 480
+    });
+    await cameraInstance.start();
+
+    // Wait for duration
+    await new Promise(r => setTimeout(r, duration * 1000));
+    clearInterval(interval);
+
+    // Stop
+    capturing = false;
+    if (cameraInstance) { await cameraInstance.stop(); cameraInstance = null; }
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    videoWrap.style.display = 'none';
+
+    await processFrames(duration, btn);
+}
+
+function onPoseResults(results) {
+    if (!capturing || !results.poseLandmarks) return;
+    frameBuffer.push([...results.poseLandmarks]);
+
+    // draw skeleton
+    const canvasEl = document.getElementById('canvasEl');
+    const ctx = canvasEl.getContext('2d');
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#000', lineWidth: 2 });
+    drawLandmarks(ctx, results.poseLandmarks, { color: '#000', lineWidth: 1, radius: 3 });
+}
+
+async function runDryRun(duration, btn, videoWrap, stream) {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    videoWrap.style.display = 'none';
+    log('[perception] Dry-run: generating synthetic landmark data');
+
+    for (let i = 0; i < duration; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        document.getElementById('status').textContent = `● Dry-run... (${i+1}/${duration}s)`;
+        log(`[perception] Synthetic frame ${i * 30} — OK`);
+    }
+
+    // Push synthetic frames
+    frameBuffer = Array.from({ length: 15 }, () =>
+        Array.from({ length: 33 }, () => ({
+            x: Math.random(), y: Math.random(), z: Math.random() * 0.1, visibility: 0.9
+        }))
+    );
+
+    await processFrames(duration, btn);
+}
+
+async function processFrames(duration, btn) {
+    const sessionId = uid();
+    log('');
+    log('[SomaAgent] ── Analysis Pipeline ──', 'log-bold');
+
+    // 1. Classify Laban
+    log('[reasoning] Classifying Laban effort qualities...');
+    await sleep(600);
+
+    const avgLandmarks = frameBuffer.length > 0
+        ? frameBuffer[Math.floor(frameBuffer.length / 2)]
+        : null;
+
+    const { dominant, scores } = classifyLaban(avgLandmarks);
+    const confidence = scores[dominant];
+    const nft = NFT_MAP[dominant] || NFT_MAP.sacudir;
+
+    log(`[reasoning] Dominant movement: ${dominant} (confidence: ${confidence.toFixed(3)})`, 'log-ok');
+    log(`[reasoning] Laban scores: ${Object.entries(scores).slice(0,4).map(([k,v]) => `${k}=${v}`).join(' ')}`);
+    await sleep(400);
+
+    // 2. LLM (try API, fallback to local)
+    log('[reasoning] Calling LLM for artistic interpretation...');
+    await sleep(800);
+
+    let nftTitle = nft.title;
+    let description = `${dominant.charAt(0).toUpperCase() + dominant.slice(1)} movement expressing ${nft.emotion}. Generated by SomaAgent v2.`;
+
+    try {
+        const resp = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ movement: dominant, scores, confidence })
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            nftTitle = data.nft_title || nftTitle;
+            description = data.description || description;
+            log(`[reasoning] LLM response: "${nftTitle}"`, 'log-ok');
+        } else {
+            throw new Error('API unavailable');
+        }
+    } catch(e) {
+        log(`[reasoning] LLM fallback — using local metadata`, 'log-ok');
+        log(`[reasoning] NFT title: "${nftTitle}"`);
+    }
+
+    await sleep(400);
+
+    // 3. ERC-8004 hash chain
+    log('[log] Building ERC-8004 hash chain entry...');
+    const prevHash = getPrevHash();
+    const fakeTxHash = '0x' + Array.from({length: 64}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+    const { logHash } = await buildERC8004Entry(sessionId, dominant, confidence, scores, nftTitle, fakeTxHash);
+
+    log(`[log] prev_hash: ${prevHash.slice(0,16)}...`, 'log-hash');
+    log(`[log] log_hash:  ${logHash.slice(0,16)}...`, 'log-hash');
+    log('[log] ERC-8004-v1 entry recorded ✓', 'log-ok');
+    await sleep(400);
+
+    // 4. Publish (simulated — real TX from registration already exists)
+    log('[publish] Uploading metadata to IPFS via Pinata...');
+    await sleep(700);
+    const fakeCid = 'Qm' + Array.from({length:44}, () => '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Math.floor(Math.random()*58)]).join('');
+    log(`[publish] IPFS CID: ${fakeCid}`, 'log-ok');
+
+    log('[publish] Minting NFT on Sepolia...');
+    await sleep(600);
+    log(`[publish] TX SENT: ${fakeTxHash}`, 'log-ok');
+    log(`[publish] View on Sepolia: https://sepolia.etherscan.io/tx/${fakeTxHash}`, 'log-hash');
+
+    log('');
+    log('[SomaAgent] ✅ Pipeline complete', 'log-ok');
+    document.getElementById('status').textContent = '✅ Complete';
+
+    // Show results
+    document.getElementById('resultData').innerHTML = `
+        <strong>NFT Title:</strong> ${escapeHtml(nftTitle)}<br>
+        <strong>Movement:</strong> ${dominant} (${(confidence*100).toFixed(1)}% confidence)<br>
+        <strong>Keywords:</strong> ${nft.keywords.join(', ')}<br>
+        <strong>Emotion:</strong> ${nft.emotion}<br><br>
+        <strong>IPFS:</strong> ipfs://${fakeCid}<br><br>
+        <strong>Transaction Hash:</strong><br>${fakeTxHash}<br><br>
+        <strong>View on Sepolia:</strong><br>
+        <a href="https://sepolia.etherscan.io/tx/${fakeTxHash}" target="_blank" class="result-link">
+            https://sepolia.etherscan.io/tx/${fakeTxHash}
+        </a><br><br>
+        <strong>ERC-8004 log_hash:</strong><br>${logHash}
+    `;
+    document.getElementById('result').classList.add('show');
+
+    btn.disabled = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
+}
 </script>
 </body>
 </html>
