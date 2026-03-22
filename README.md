@@ -205,9 +205,6 @@ SomaAgent-v2/
 }
 ```
 
-**View on Base Mainnet:** [0x39b1399bfa...](https://basescan.org/tx/0x39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc)  
-**Agent Log:** `agent_log_b3d56035.json`
-
 ---
 
 ## 🎓 Learning & References
