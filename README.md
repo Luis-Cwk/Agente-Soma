@@ -4,7 +4,7 @@
 
 Captures human movement, analyzes Laban effort, generates AI art, and mints NFTs on Sepolia blockchain — all automatically.
 
-> Built for [Synthesis Hackathon 2026](https://synthesis.ai/) | Hackathon Team
+> Built for [Synthesis Hackathon 2026](https://synthesis.md/) | Hackathon Team
 
 ---
 
