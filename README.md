@@ -333,9 +333,6 @@ python run_auto.py --duration 20 --auto-publish
 **Watch the agent run autonomously:**  
 [Live Demo](https://skill-deploy-o8dmn73huw.vercel.app/)
 
-**Live frontend (NFT viewer):**  
-[videodanza-nft.vercel.app](https://videodanza-nft.vercel.app)
-
 **Sample agent log (ERC-8004):**  
 [View on IPFS](ipfs://PLACEHOLDER)
 
