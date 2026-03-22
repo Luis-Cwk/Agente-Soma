@@ -189,6 +189,7 @@ MIT License - See LICENSE file for details
 
 ---
 
+```
 **Questions?** See [SETUP.md](SETUP.md) for troubleshooting, or open an issue on GitHub.
          └──────┬──────────────┬───────┘
                 │              │
@@ -198,6 +199,7 @@ MIT License - See LICENSE file for details
   │  SHA-256 chain   │    │  ERC-721 mint       │
   │  agent_log.json  │    │  Base Mainnet       │
   └─────────────────┘    └─────────────────────┘
+```
 
 ©2026 Petra. All rights reserved.
 ```
