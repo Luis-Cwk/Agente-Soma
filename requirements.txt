@@ -1,0 +1,31 @@
+# SomaAgent v2 — Dependencies
+
+# Core Agent
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-ollama>=0.2.0
+ollama>=0.1.0
+
+# Computer Vision
+mediapipe>=0.10.9
+opencv-python>=4.8.0
+
+# Blockchain
+web3>=6.0.0
+
+# IPFS / Storage
+requests>=2.31.0
+pinata>=1.0.0
+
+# Web Frontend
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+numpy>=1.24.0
+
+# Dev / Testing
+pytest>=7.0.0
+

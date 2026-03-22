@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SomaAgent — Autonomous Motion Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+    body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #e2e8f0; }
+    .mono { font-family: 'Space Mono', monospace; }
+    .glow { box-shadow: 0 0 20px rgba(139,92,246,0.3); }
+    .glow-green { box-shadow: 0 0 20px rgba(34,197,94,0.25); }
+    .hash-pill { background: #1a1a2e; border: 1px solid #7c3aed33; font-size: 11px; }
+    @keyframes pulse-chain { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .chain-dot { animation: pulse-chain 2s ease-in-out infinite; }
+    @keyframes slide-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .slide-in { animation: slide-in 0.5s ease forwards; }
+    .laban-bar { transition: width 1s ease; }
+    .card { background: #111118; border: 1px solid #ffffff0f; border-radius: 12px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <div class="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-sm">S</div>
+      <span class="mono font-bold text-white">SomaAgent</span>
+      <span class="text-xs text-white/30 mono">v2.0.0</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-2 h-2 rounded-full bg-green-400 chain-dot"></div>
+      <span class="text-xs text-white/50">AUTONOMOUS · LIVE</span>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="max-w-5xl mx-auto px-6 pt-16 pb-8">
+    <div class="text-center mb-12">
+      <p class="text-violet-400 mono text-sm mb-3 tracking-widest">SYNTHESIS HACKATHON 2026</p>
+      <h1 class="text-4xl md:text-5xl font-light text-white mb-4 leading-tight">
+        Body Motion<br/>
+        <span class="text-violet-400 font-semibold">→ Autonomous Art</span>
+      </h1>
+      <p class="text-white/50 text-lg max-w-xl mx-auto">
+        SomaAgent observes human movement, interprets it through Laban analysis,
+        and autonomously generates verifiable digital art — no human decisions in the loop.
+      </p>
+      <div class="flex gap-3 justify-center mt-6 flex-wrap">
+        <span class="px-3 py-1 bg-violet-900/40 border border-violet-500/30 rounded-full text-xs text-violet-300 mono">ERC-8004 $8k</span>
+        <span class="px-3 py-1 bg-blue-900/40 border border-blue-500/30 rounded-full text-xs text-blue-300 mono">Let the Agent Cook $8k</span>
+        <span class="px-3 py-1 bg-emerald-900/40 border border-emerald-500/30 rounded-full text-xs text-emerald-300 mono">Open Track $14.5k</span>
+      </div>
+    </div>
+
+    <!-- Pipeline Visual -->
+    <div class="card p-6 mb-6 glow">
+      <p class="text-xs text-white/30 mono mb-4 tracking-widest">AUTONOMOUS PIPELINE</p>
+      <div class="flex items-center gap-2 flex-wrap justify-center">
+        <div id="step-perception" class="flex flex-col items-center gap-1 transition-all duration-500">
+          <div class="w-10 h-10 rounded-lg bg-violet-900/50 border border-violet-500/40 flex items-center justify-center text-lg">👁️</div>
+          <span class="text-xs text-white/50">Perception</span>
+        </div>
+        <div class="text-white/20 text-lg">→</div>
+        <div id="step-reasoning" class="flex flex-col items-center gap-1 transition-all duration-500">
+          <div class="w-10 h-10 rounded-lg bg-blue-900/50 border border-blue-500/40 flex items-center justify-center text-lg">🧠</div>
+          <span class="text-xs text-white/50">Reasoning</span>
+        </div>
+        <div class="text-white/20 text-lg">→</div>
+        <div id="step-log" class="flex flex-col items-center gap-1 transition-all duration-500">
+          <div class="w-10 h-10 rounded-lg bg-amber-900/50 border border-amber-500/40 flex items-center justify-center text-lg">🔒</div>
+          <span class="text-xs text-white/50">ERC-8004 Log</span>
+        </div>
+        <div class="text-white/20 text-lg">→</div>
+        <div id="step-publish" class="flex flex-col items-center gap-1 transition-all duration-500">
+          <div class="w-10 h-10 rounded-lg bg-emerald-900/50 border border-emerald-500/40 flex items-center justify-center text-lg">🖼️</div>
+          <span class="text-xs text-white/50">NFT Mint</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+
+      <!-- Laban Analysis -->
+      <div class="card p-5">
+        <p class="text-xs text-white/30 mono mb-4 tracking-widest">LABAN MOVEMENT ANALYSIS</p>
+        <div id="laban-bars" class="space-y-3">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- NFT Output -->
+      <div class="card p-5 glow-green">
+        <p class="text-xs text-white/30 mono mb-4 tracking-widest">AGENT DECISION — NFT OUTPUT</p>
+        <div class="space-y-3">
+          <div>
+            <p class="text-xs text-white/30 mb-1">TITLE</p>
+            <p id="nft-title" class="text-white font-semibold text-lg">—</p>
+          </div>
+          <div>
+            <p class="text-xs text-white/30 mb-1">DESCRIPTION</p>
+            <p id="nft-desc" class="text-white/70 text-sm leading-relaxed">—</p>
+          </div>
+          <div>
+            <p class="text-xs text-white/30 mb-1">EMOTION TAG</p>
+            <span id="nft-emotion" class="px-2 py-0.5 bg-violet-900/50 border border-violet-500/30 rounded text-violet-300 text-xs mono">—</span>
+          </div>
+          <div>
+            <p class="text-xs text-white/30 mb-1">VISUAL KEYWORDS</p>
+            <div id="nft-keywords" class="flex gap-1 flex-wrap">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERC-8004 Hash Chain -->
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-xs text-white/30 mono tracking-widest">ERC-8004 HASH CHAIN — VERIFIED</p>
+        <span id="chain-status" class="px-2 py-0.5 bg-green-900/40 border border-green-500/30 rounded text-green-400 text-xs mono">VALID ✓</span>
+      </div>
+      <div id="hash-chain" class="space-y-2">
+        <!-- filled by JS -->
+      </div>
+      <div class="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <p class="text-white/30 mb-1">AGENT</p>
+          <p class="mono text-white/70">SomaAgent v2.0.0</p>
+        </div>
+        <div>
+          <p class="text-white/30 mb-1">TEAM ID</p>
+          <p class="mono text-white/70 text-xs">874d2679...6701c6</p>
+        </div>
+        <div>
+          <p class="text-white/30 mb-1">REGISTRATION TX</p>
+          <p class="mono text-white/70 text-xs">0x76b7f8...993c0</p>
+        </div>
+        <div>
+          <p class="text-white/30 mb-1">CHAIN</p>
+          <p class="mono text-white/70">Base Mainnet</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Run Button -->
+    <div class="text-center py-6">
+      <button id="run-btn" onclick="simulateRun()"
+        class="px-8 py-3 bg-violet-600 hover:bg-violet-500 rounded-lg mono text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95">
+        ▶ SIMULATE AGENT RUN
+      </button>
+      <p class="text-xs text-white/30 mt-2">Demonstrates one full autonomous pipeline cycle</p>
+    </div>
+
+    <!-- Agent Reasoning Trace -->
+    <div class="card p-5 mb-8">
+      <p class="text-xs text-white/30 mono mb-4 tracking-widest">AGENT REASONING TRACE</p>
+      <div id="reasoning-log" class="space-y-1 mono text-xs text-white/50 min-h-[80px]">
+        <p class="text-white/20">Run the agent to see its decision process...</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="border-t border-white/5 pt-6 pb-12 flex flex-wrap justify-between items-center gap-4 text-xs text-white/30">
+      <div class="flex gap-4">
+        <a href="https://github.com/Luis-Cwk/somaagent" class="hover:text-white/60 transition-colors">GitHub →</a>
+        <a href="https://videodanza-nft.vercel.app" class="hover:text-white/60 transition-colors">NFT Viewer →</a>
+      </div>
+      <p>Built by Petra · Synthesis 2026 · LangGraph + glm-5 + ERC-8004 + Base</p>
+    </div>
+  </div>
+
+<script>
+const MOVEMENTS = {
+  golpear:  { color: 'bg-red-500',    label: 'golpear',   hint: 'sudden · strong · direct · bound' },
+  flotar:   { color: 'bg-blue-400',   label: 'flotar',    hint: 'sustained · light · indirect · free' },
+  deslizar: { color: 'bg-cyan-400',   label: 'deslizar',  hint: 'sustained · light · direct · free' },
+  cortar:   { color: 'bg-gray-400',   label: 'cortar',    hint: 'sudden · light · indirect · bound' },
+  presionar:{ color: 'bg-amber-600',  label: 'presionar', hint: 'sustained · strong · direct · bound' },
+  retorcer: { color: 'bg-emerald-500',label: 'retorcer',  hint: 'sustained · strong · indirect · bound' },
+  sacudir:  { color: 'bg-pink-500',   label: 'sacudir',   hint: 'sudden · light · indirect · free' },
+  tocar:    { color: 'bg-violet-400', label: 'tocar',     hint: 'sudden · strong · indirect · free' },
+};
+
+const DEMO_SESSIONS = [
+  {
+    dominant: 'golpear', scores: { golpear:0.42, cortar:0.18, sacudir:0.12, tocar:0.10, presionar:0.08, retorcer:0.05, deslizar:0.03, flotar:0.02 },
+    title: 'Crimson Impact, Bound', description: 'A body becomes architecture of contained thunder. The force does not scatter — it finds edges, presses against them, becomes the wall itself. This is the geometry of restrained fury.',
+    emotion: 'fury', keywords: ['fractured geometry','crimson burst','gold leaf fissures','suspended impact'],
+    hash: '3d61b13422705b10', prev: '00000000',
+    reasoning: [
+      'I observe dominant movement: golpear (42% confidence)',
+      'Laban: sudden + strong + direct + bound → contained explosive quality',
+      'The "bound" flow prevents full release — energy is restrained, not free',
+      'Artistic decision: contrast between explosive intention and bound execution',
+      'Selecting: crimson palette + fractured geometry to express restrained force',
+      'NFT title chosen: "Crimson Impact, Bound"'
+    ]
+  },
+  {
+    dominant: 'flotar', scores: { flotar:0.51, deslizar:0.19, sacudir:0.10, retorcer:0.08, golpear:0.05, cortar:0.04, presionar:0.02, tocar:0.01 },
+    title: 'Drift Without Weight', description: 'The body forgets gravity. Sustained and light, indirect and free — it moves like thought through water. No destination, only the quality of the journey through weightless space.',
+    emotion: 'dissolution', keywords: ['oceanic gradients','zero gravity silk','particle drift','absence of edge'],
+    hash: '47be4973394af3e7', prev: '3d61b134',
+    reasoning: [
+      'I observe dominant movement: flotar (51% confidence)',
+      'Laban: sustained + light + indirect + free → maximum freedom quality',
+      'All four effort factors point toward dissolution of intention',
+      'The dancer is not going anywhere — they are simply existing in motion',
+      'Artistic decision: no sharp edges, no destination, pure drift',
+      'NFT title chosen: "Drift Without Weight"'
+    ]
+  },
+  {
+    dominant: 'retorcer', scores: { retorcer:0.38, presionar:0.21, golpear:0.15, cortar:0.10, flotar:0.06, deslizar:0.05, sacudir:0.03, tocar:0.02 },
+    title: 'Spiral Memory', description: 'The body remembers something it cannot name. Sustained pressure twisted through indirect pathways, fighting its own momentum. Bioluminescent tension seeking impossible release.',
+    emotion: 'tension', keywords: ['bioluminescent spiral','tectonic coil','deep indigo','organic contortion'],
+    hash: '6e70c8216d083524', prev: '47be4973',
+    reasoning: [
+      'I observe dominant movement: retorcer (38% confidence)',
+      'Laban: sustained + strong + indirect + bound → spiral tension quality',
+      '"Bound" flow + "indirect" space = movement that fights itself',
+      'The strong weight + sustained time creates slow inevitable pressure',
+      'Artistic decision: organic forms under maximum stress, bioluminescent glow',
+      'NFT title chosen: "Spiral Memory"'
+    ]
+  }
+];
+
+let sessionIndex = 0;
+let chainHistory = [];
+
+function renderLabanBars(scores, dominant) {
+  const container = document.getElementById('laban-bars');
+  container.innerHTML = '';
+  Object.entries(scores).sort((a,b) => b[1]-a[1]).forEach(([name, score]) => {
+    const m = MOVEMENTS[name];
+    const pct = Math.round(score * 100);
+    const isDominant = name === dominant;
+    container.innerHTML += `
+      <div class="${isDominant ? 'opacity-100' : 'opacity-60'}">
+        <div class="flex justify-between text-xs mb-1">
+          <span class="${isDominant ? 'text-white font-medium' : 'text-white/50'}">${name}${isDominant ? ' ★' : ''}</span>
+          <span class="mono text-white/40">${pct}%</span>
+        </div>
+        <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div class="h-full ${m.color} rounded-full laban-bar" style="width:0%" data-pct="${pct}"></div>
+        </div>
+      </div>`;
+  });
+  setTimeout(() => {
+    document.querySelectorAll('.laban-bar').forEach(b => {
+      b.style.width = b.dataset.pct + '%';
+    });
+  }, 100);
+}
+
+function renderHashChain() {
+  const container = document.getElementById('hash-chain');
+  container.innerHTML = '';
+  const display = chainHistory.slice(-4);
+  display.forEach((s, i) => {
+    const isLatest = i === display.length - 1;
+    container.innerHTML += `
+      <div class="flex items-center gap-2 slide-in" style="animation-delay:${i*0.1}s">
+        <div class="w-2 h-2 rounded-full ${isLatest ? 'bg-green-400 chain-dot' : 'bg-white/20'}"></div>
+        <div class="hash-pill rounded px-2 py-1 flex gap-3 items-center flex-1">
+          <span class="text-white/30">prev: ${s.prev}</span>
+          <span class="text-white/20">→</span>
+          <span class="${isLatest ? 'text-green-400' : 'text-white/50'}">${s.hash}</span>
+          <span class="text-white/20 ml-auto">${s.dominant}</span>
+        </div>
+        ${isLatest ? '<span class="text-green-400 text-xs">✓</span>' : ''}
+      </div>`;
+  });
+}
+
+function logReasoning(steps) {
+  const container = document.getElementById('reasoning-log');
+  container.innerHTML = '';
+  steps.forEach((step, i) => {
+    setTimeout(() => {
+      container.innerHTML += `<p class="text-white/60 slide-in"><span class="text-violet-400">→</span> ${step}</p>`;
+    }, i * 300);
+  });
+}
+
+function simulateRun() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ RUNNING...';
+  btn.className = btn.className.replace('bg-violet-600 hover:bg-violet-500', 'bg-violet-900');
+
+  const session = DEMO_SESSIONS[sessionIndex % DEMO_SESSIONS.length];
+  sessionIndex++;
+
+  // Animate pipeline steps
+  const steps = ['perception', 'reasoning', 'log', 'publish'];
+  steps.forEach((step, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(`step-${step}`);
+      if (el) {
+        el.classList.add('scale-110');
+        el.querySelector('div').classList.add('ring-2', 'ring-violet-400');
+        setTimeout(() => {
+          el.classList.remove('scale-110');
+          el.querySelector('div').classList.remove('ring-2', 'ring-violet-400');
+          el.querySelector('div').classList.add('ring-1', 'ring-green-400/50');
+        }, 600);
+      }
+    }, i * 700);
+  });
+
+  setTimeout(() => {
+    // Update Laban bars
+    renderLabanBars(session.scores, session.dominant);
+
+    // Update NFT output
+    document.getElementById('nft-title').textContent = session.title;
+    document.getElementById('nft-desc').textContent = session.description;
+    document.getElementById('nft-emotion').textContent = session.emotion;
+    const kwContainer = document.getElementById('nft-keywords');
+    kwContainer.innerHTML = session.keywords.map(k =>
+      `<span class="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-white/60 text-xs">${k}</span>`
+    ).join('');
+
+    // Update hash chain
+    chainHistory.push({ hash: session.hash, prev: session.prev, dominant: session.dominant });
+    renderHashChain();
+
+    // Reasoning trace
+    logReasoning(session.reasoning);
+
+    // Reset button
+    btn.disabled = false;
+    btn.textContent = '▶ RUN AGAIN';
+    btn.className = btn.className.replace('bg-violet-900', 'bg-violet-600 hover:bg-violet-500');
+  }, 3200);
+}
+
+// Init with first session rendered
+renderLabanBars(DEMO_SESSIONS[0].scores, DEMO_SESSIONS[0].dominant);
+chainHistory.push({ hash: '00000000', prev: 'genesis', dominant: '—' });
+renderHashChain();
+</script>
+</body>
+</html>
