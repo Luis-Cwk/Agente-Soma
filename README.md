@@ -190,6 +190,8 @@ MIT License - See LICENSE file for details
 ---
 
 **Questions?** See [SETUP.md](SETUP.md) for troubleshooting, or open an issue on GitHub.
+
+```
          └──────┬──────────────┬───────┘
                 │              │
   ┌─────────────▼───┐    ┌─────▼──────────────┐
@@ -198,9 +200,9 @@ MIT License - See LICENSE file for details
   │  SHA-256 chain   │    │  ERC-721 mint       │
   │  agent_log.json  │    │  Base Mainnet       │
   └─────────────────┘    └─────────────────────┘
+```
 
 ©2026 Petra. All rights reserved.
-```
 
 ### Laban Movement Analysis
 
@@ -259,7 +261,7 @@ Verified: `00000000 → 3d61b134 → 47be4973 → 6e70c821` ✅
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Deployment
 
 ### Option A: Web Interface (Recommended)
 
@@ -294,8 +296,6 @@ python app.py
 - ✅ Live Laban score bars
 - ✅ Hash chain visualization
 
----
-
 ### Option B: CLI (Headless)
 
 ```bash
@@ -307,8 +307,11 @@ python run_auto.py --dry-run
 
 # Full autonomous mode (auto-saves logs, uploads IPFS, mints NFT)
 python run_auto.py --duration 20 --auto-publish
+```
 
-## 🛠️ Tech Stack
+---
+
+## 🛠️ Complete Tech Stack
 
 | Component | Technology |
 |-----------|------------|
@@ -321,92 +324,9 @@ python run_auto.py --duration 20 --auto-publish
 | Blockchain | Base Mainnet, ERC-721 |
 | Language | Python 3.11+ |
 
-## 📁 Structure
-
-```
-somaagent/
-├── agent/
-│   ├── graph.py          # LangGraph orchestrator
-│   ├── state.py          # Shared AgentState
-│   └── nodes/
-│       ├── perception.py # MediaPipe → Laban scores
-│       ├── reasoning.py  # glm-5 artistic decisions
-│       ├── log_node.py   # ERC-8004 hash chain
-│       └── publish.py    # IPFS + NFT mint
-├── config.py             # Env-based config (no hardcoded paths)
-├── run_auto.py           # Entry point
-├── logs/                 # agent_log_[session].json files
-└── requirements.txt
-```
-
-## 🎬 Demo
-
-Watch the agent run autonomously: [Video Demo](https://youtu.be/PLACEHOLDER) ← replace with actual recording
-
-Live frontend (NFT viewer): [videodanza-nft.vercel.app](https://videodanza-nft.vercel.app/)
-
-Sample agent log (ERC-8004): View on IPFS
-
-## 👤 Builder
-
-Petra / Luis Betancourt [@luisbetx9](https://twitter.com/luisbetx9)
-
-Wallet: `0x1A49138cCb61C50D72A44a299F6C74c690f6c67f`
-
-Registration TX: `0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0`
-
-# 2. Install
-pip install -r requirements.txt
-
-# 3. Configure
-cp .env.example .env
-# Edit .env: set OLLAMA_API_KEY, PINATA_*, WALLET_PRIVATE_KEY
-
-# 4. Run (no camera needed for test)
-python run_auto.py --dry-run
-
-# 5. Run with camera
-python run_auto.py --duration 15
-```
-
 ---
 
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Agent Orchestration | LangGraph (StateGraph) |
-| LLM | glm-5 via Ollama Cloud API |
-| Body Capture | MediaPipe Pose (33 landmarks) |
-| Movement Analysis | Laban Movement Analysis (8 efforts) |
-| Provenance | ERC-8004 SHA-256 hash chain |
-| Storage | IPFS via Pinata |
-| Blockchain | Base Mainnet, ERC-721 |
-| Language | Python 3.11+ |
-
----
-
-## 📁 Structure
-
-```
-somaagent/
-├── agent/
-│   ├── graph.py          # LangGraph orchestrator
-│   ├── state.py          # Shared AgentState
-│   └── nodes/
-│       ├── perception.py # MediaPipe → Laban scores
-│       ├── reasoning.py  # glm-5 artistic decisions
-│       ├── log_node.py   # ERC-8004 hash chain
-│       └── publish.py    # IPFS + NFT mint
-├── config.py             # Env-based config (no hardcoded paths)
-├── run_auto.py           # Entry point
-├── logs/                 # agent_log_[session].json files
-└── requirements.txt
-```
-
----
-
-## 🎬 Demo
+## 🎬 Demo & Resources
 
 **Watch the agent run autonomously:**  
 [Video Demo](https://youtu.be/PLACEHOLDER) ← *replace with actual recording*
