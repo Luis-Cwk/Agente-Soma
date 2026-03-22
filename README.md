@@ -24,6 +24,17 @@ SomaAgent **watches humans move** → **understands how** → **decides what art
 
 ---
 
+## 🎬 Live Demo
+
+<video width="100%" controls>
+  <source src="https://github.com/Luis-Cwk/Agente-Soma/raw/master/videos/Somaagent-Petra.mp4" type="video/mp4">
+  Your browser does not support the video tag. <a href="https://github.com/Luis-Cwk/Agente-Soma/raw/master/videos/Somaagent-Petra.mp4">Download video</a>
+</video>
+
+**Real execution**: Motion capture → Laban analysis → AI art generation → NFT minting on Sepolia (7.3 MB)
+
+---
+
 ## ⚡ Features
 
 ✅ **Real-time Motion Capture** (MediaPipe Pose 33 keypoints)  
@@ -335,9 +346,6 @@ python run_auto.py --duration 20 --auto-publish
 ---
 
 ## 🎬 Demo & Resources
-
-**Watch the agent run autonomously:**  
-[Live Demo Video](https://github.com/Luis-Cwk/Agente-Soma/raw/master/videos/Somaagent-Petra.mp4) (7.3 MB)
 
 **Sample agent log (ERC-8004):**  
 [View on IPFS](https://black-persistent-fly-380.mypinata.cloud/ipfs/QmWeMVfyJGjxDbACGN2h8DEHqahb9QAFeyHseBiGmQpdmQ)
