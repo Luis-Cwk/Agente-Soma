@@ -337,7 +337,7 @@ python run_auto.py --duration 20 --auto-publish
 ## 🎬 Demo & Resources
 
 **Watch the agent run autonomously:**  
-[Live Demo](https://skill-deploy-o8dmn73huw.vercel.app/)
+[Live Demo Video](https://github.com/Luis-Cwk/Agente-Soma/raw/master/videos/Somaagent-Petra.mp4) (7.3 MB)
 
 **Sample agent log (ERC-8004):**  
 [View on IPFS](https://black-persistent-fly-380.mypinata.cloud/ipfs/QmWeMVfyJGjxDbACGN2h8DEHqahb9QAFeyHseBiGmQpdmQ)
