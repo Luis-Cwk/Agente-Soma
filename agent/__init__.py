@@ -1,1 +1,1 @@
-# SomaAgent v2 - Agent Module
+# SomaAgent - Agent Module

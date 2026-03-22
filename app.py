@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Web Frontend + Backend
+SomaAgent — Web Frontend + Backend
 Flask server with WebSocket support for real-time agent interaction.
 """
 import os
@@ -346,7 +346,7 @@ def health():
 
 
 if __name__ == '__main__':
-    print("🚀 SomaAgent v2 — Web Frontend")
+    print("🚀 SomaAgent — Web Frontend")
     print(f"📢 Starting at http://localhost:5000")
     print(f"🤖 Agent: {AGENT_NAME} v{AGENT_VERSION}")
     print(f"📷 Using default camera: {CAMERA_INDEX}")

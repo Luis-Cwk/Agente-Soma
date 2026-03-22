@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — ERC-8004 Log Node
+SomaAgent — ERC-8004 Log Node
 Generates a verifiable agent_log.json with hash chain.
 Every decision the agent made is recorded and cryptographically chained.
 This is the core of the ERC-8004 "Agents With Receipts" bounty.

@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Utility Functions
+SomaAgent — Utility Functions
 """
 import sys
 

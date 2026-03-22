@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — LangGraph Orchestrator
+SomaAgent — LangGraph Orchestrator
 Defines the autonomous agent pipeline as a directed state graph.
 
 Flow: perception → reasoning → log → publish → END
@@ -71,9 +71,9 @@ def build_graph() -> StateGraph:
     )
 
     graph.add_edge("publish", END)
-
-    return graph.compile()
-
+        """
+        SomaAgent — LangGraph Orchestrator
+        """
 
 # ─── Convenience function ─────────────────────────────────────────────────────
 

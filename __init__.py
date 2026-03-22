@@ -1,1 +1,1 @@
-# SomaAgent v2 Nodes
+# SomaAgent Nodes

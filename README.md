@@ -1,4 +1,4 @@
-# ⬢ SomaAgent v2
+# ⬢ SomaAgent
 
 **Autonomous Motion Analysis Agent**
 

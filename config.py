@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Configuration
+SomaAgent — Configuration
 All paths relative. No hardcoded user directories.
 """
 import os

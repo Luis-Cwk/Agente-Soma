@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Reasoning Node
+SomaAgent — Reasoning Node
 Uses Ollama LLM to interpret Laban movement data and generate artistic interpretations,
 NFT metadata, and autonomous minting decisions.
 """
@@ -11,7 +11,6 @@ import threading
 sys.path.insert(0, str(pathlib.Path(__file__).parents[2]))
 from agent.state import AgentState
 from config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_API_KEY
-
 
 class TimeoutException(Exception):
     pass

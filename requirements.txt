@@ -1,4 +1,4 @@
-# SomaAgent v2 — Dependencies
+# SomaAgent — Dependencies
 
 # Core Agent
 langgraph>=0.2.0

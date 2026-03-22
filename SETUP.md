@@ -1,4 +1,4 @@
-# SomaAgent v2 — Installation & Setup Guide
+# SomaAgent — Installation & Setup Guide
 
 ## Prerequisites
 

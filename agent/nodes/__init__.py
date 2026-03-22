@@ -1,1 +1,1 @@
-# SomaAgent v2 - Nodes Module
+# SomaAgent - Nodes Module

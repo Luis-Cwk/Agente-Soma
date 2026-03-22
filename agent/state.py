@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Shared Agent State
+SomaAgent — Shared Agent State
 LangGraph state flows through all nodes.
 """
 from typing import TypedDict, Optional, List, Dict, Any

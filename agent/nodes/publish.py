@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Publish Node
+SomaAgent — Publish Node
 Uploads agent_log + metadata to IPFS via Pinata, then mints NFT on Base.
 Optionally creates auctions via RARE Protocol (SuperRareBazaar) for SuperRare bounty eligibility.
 """

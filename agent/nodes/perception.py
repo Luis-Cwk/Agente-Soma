@@ -1,5 +1,5 @@
 """
-SomaAgent v2 — Perception Node
+SomaAgent — Perception Node
 Captures motion via MediaPipe and classifies into 8 Laban movement qualities.
 """
 import cv2
