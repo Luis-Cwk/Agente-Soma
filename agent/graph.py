@@ -71,9 +71,9 @@ def build_graph() -> StateGraph:
     )
 
     graph.add_edge("publish", END)
-        """
-        SomaAgent — LangGraph Orchestrator
-        """
+
+    # Compile to executable app
+    return graph.compile()
 
 # ─── Convenience function ─────────────────────────────────────────────────────
 
