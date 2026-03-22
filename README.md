@@ -339,7 +339,8 @@ somaagent/
 ├── run_auto.py           # Entry point
 ├── logs/                 # agent_log_[session].json files
 └── requirements.txt
-```
+
+
 
 ## 🎬 Demo
 
