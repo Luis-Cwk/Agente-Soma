@@ -167,8 +167,8 @@ SomaAgent-v2/
   "nft_description": "Dynamic, weightless movement embodying the essence of flotar.",
   "keywords": ["flotar", "kinetic", "embodied", "laban"],
   "emotion": "dynamic",
-  "ipfs_cid": "QmSomaWeightless Drift",
-  "tx_hash": "39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc",
+  "ipfs_cid": "QmWeMVfyJGjxDbACGN2h8DEHqahb9QAFeyHseBiGmQpdmQ",
+  "tx_hash": "0x39b1399bfa06c84e3809887639e9296651cd9c7a3824092c077f7fff2b4f4fdc",
   "log_hash": "6454f47fad3fb860...fc43c60a",
   "session_id": "b3d56035-153f-47bd-b213-d3b91584ec4a"
 }
