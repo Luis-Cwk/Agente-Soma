@@ -388,3 +388,7 @@ Qualifies for **SuperRare Partner Track** bounty at Synthesis.
 [@luisbetx9](https://twitter.com/luisbetx9)  
 Wallet: `0x1A49138cCb61C50D72A44a299F6C74c690f6c67f`  
 Registration TX: [View on Base Mainnet](https://basescan.org/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0)
+
+---
+
+<sub>**Note on Web Demo:** The web demo uses synthetic pose data to showcase the full pipeline (Laban → LLM → ERC-8004 → IPFS → NFT mint). For real camera capture, use the CLI: `python run_auto.py --duration 15`</sub>
