@@ -391,4 +391,4 @@ Registration TX: [View on Base Mainnet](https://basescan.org/tx/0x76b7f88db606c6
 
 ---
 
-<sub>**Note on Web Demo:** The web demo uses synthetic pose data to showcase the full pipeline (Laban → LLM → ERC-8004 → IPFS → NFT mint). For real camera capture, use the CLI: `python run_auto.py --duration 15`</sub>
+<sub>**Note on Web Demo:** The web demo captures real movement via camera and performs real Laban analysis + LLM art generation. For the full on-chain pipeline (IPFS upload, NFT minting, ERC-8004 logging), use the CLI: `python run_auto.py --duration 15`</sub>
