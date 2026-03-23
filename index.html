@@ -177,10 +177,80 @@
             margin-top: auto;
             padding-top: 20px;
         }
+
+        /* Agent Status Bar */
+        .agent-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .agent-status-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .agent-status-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .agent-badge {
+            background: #000;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .agent-name {
+            font-weight: bold;
+            color: #000;
+        }
+
+        .agent-id {
+            color: #666;
+            font-family: 'Monaco', monospace;
+        }
+
+        .agent-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-family: 'Monaco', monospace;
+            font-size: 11px;
+        }
+
+        .agent-link:hover { text-decoration: underline; }
+
+        .agent-verified {
+            color: #006600;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
 <div class="container">
+
+    <div class="agent-status">
+        <div class="agent-status-left">
+            <span class="agent-badge">⬢ Agent</span>
+            <span class="agent-name">SomaAgent</span>
+        </div>
+        <div class="agent-status-right">
+            <span class="agent-id">#34699</span>
+            <a href="https://basescan.org/tx/0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66993c0" target="_blank" class="agent-link">0x6FFa...99BC ↗</a>
+            <span class="agent-verified">✓ On-chain</span>
+        </div>
+    </div>
 
     <div class="main">
         <div class="logo">⬢ SomaAgent</div>
