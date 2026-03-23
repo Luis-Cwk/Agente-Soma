@@ -619,17 +619,6 @@ async function processFrames(duration, btn) {
     log('[log] ERC-8004-v1 entry recorded ✓', 'log-ok');
     await sleep(400);
 
-    // 4. Publish (simulated — real TX from registration already exists)
-    log('[publish] Uploading metadata to IPFS via Pinata...');
-    await sleep(700);
-    const fakeCid = 'Qm' + Array.from({length:44}, () => '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Math.floor(Math.random()*58)]).join('');
-    log(`[publish] IPFS CID: ${fakeCid}`, 'log-ok');
-
-    log('[publish] Minting NFT on Sepolia...');
-    await sleep(600);
-    log(`[publish] TX SENT: ${fakeTxHash}`, 'log-ok');
-    log(`[publish] View on Sepolia: https://sepolia.etherscan.io/tx/${fakeTxHash}`, 'log-hash');
-
     log('');
     log('[SomaAgent] ✅ Pipeline complete', 'log-ok');
     document.getElementById('status').textContent = '✅ Complete';
@@ -640,12 +629,6 @@ async function processFrames(duration, btn) {
         <strong>Movement:</strong> ${dominant} (${(confidence*100).toFixed(1)}% confidence)<br>
         <strong>Keywords:</strong> ${nft.keywords.join(', ')}<br>
         <strong>Emotion:</strong> ${nft.emotion}<br><br>
-        <strong>IPFS:</strong> ipfs://${fakeCid}<br><br>
-        <strong>Transaction Hash:</strong><br>${fakeTxHash}<br><br>
-        <strong>View on Sepolia:</strong><br>
-        <a href="https://sepolia.etherscan.io/tx/${fakeTxHash}" target="_blank" class="result-link">
-            https://sepolia.etherscan.io/tx/${fakeTxHash}
-        </a><br><br>
         <strong>ERC-8004 log_hash:</strong><br>${logHash}
     `;
     document.getElementById('result').classList.add('show');
