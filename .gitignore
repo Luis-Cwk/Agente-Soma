@@ -53,3 +53,4 @@ Thumbs.db
 # Local testing
 test_*.py
 /tmp/
+.vercel

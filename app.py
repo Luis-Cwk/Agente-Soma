@@ -334,6 +334,71 @@ def get_log_detail(filename):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/agent/publish', methods=['POST'])
+def publish_only():
+    """
+    Run ONLY the publish node (IPFS + NFT mint).
+    Use this if the main capture timed out before publishing.
+    """
+    global current_session
+    
+    if current_session is None or current_session.get('status') != 'complete':
+        return jsonify({
+            'status': 'error',
+            'message': 'No completed session to publish. Run capture first.'
+        }), 400
+    
+    try:
+        from agent.nodes.publish import publish_node
+        from agent.state import AgentState
+        
+        state = AgentState(
+            session_id=current_session.get('capture_session_id'),
+            raw_landmarks=None,
+            laban_scores=current_session['data'].get('laban_scores'),
+            dominant_movement=current_session['data'].get('movement'),
+            movement_confidence=current_session['data'].get('confidence'),
+            reasoning_chain=None,
+            artistic_interpretation=current_session['data'].get('nft_description'),
+            nft_title=current_session['data'].get('nft_title'),
+            nft_description=current_session['data'].get('nft_description'),
+            visual_keywords=current_session['data'].get('keywords'),
+            emotion_tag=current_session['data'].get('emotion'),
+            log_entries=None,
+            log_hash=current_session['data'].get('log_hash'),
+            prev_log_hash=current_session['data'].get('prev_log_hash'),
+            ipfs_cid=None,
+            ipfs_url=None,
+            tx_hash=None,
+            token_id=None,
+            auction_tx=None,
+            auction_enabled=None,
+            error=None,
+            status='running',
+            next_action='publish'
+        )
+        
+        result = publish_node(state)
+        
+        current_session['data']['ipfs'] = result.get('ipfs_url')
+        current_session['data']['tx_hash'] = result.get('tx_hash')
+        current_session['data']['tx_url'] = f"https://basescan.org/tx/{result.get('tx_hash')}" if result.get('tx_hash') else None
+        
+        return jsonify({
+            'status': 'published',
+            'ipfs_url': result.get('ipfs_url'),
+            'ipfs_cid': result.get('ipfs_cid'),
+            'tx_hash': result.get('tx_hash'),
+            'tx_url': current_session['data']['tx_url']
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
 @app.route('/health')
 def health():
     """Health check."""
