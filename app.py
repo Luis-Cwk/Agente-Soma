@@ -380,15 +380,20 @@ def publish_only():
         
         result = publish_node(state)
         
-        current_session['data']['ipfs'] = result.get('ipfs_url')
-        current_session['data']['tx_hash'] = result.get('tx_hash')
-        current_session['data']['tx_url'] = f"https://basescan.org/tx/{result.get('tx_hash')}" if result.get('tx_hash') else None
+        tx_hash = result.get('tx_hash')
+        ipfs_url = result.get('ipfs_url')
+        
+        current_session['data']['ipfs'] = ipfs_url
+        current_session['data']['tx_hash'] = tx_hash
+        current_session['data']['tx_url'] = f"https://sepolia.etherscan.io/tx/{tx_hash}" if tx_hash and tx_hash.startswith('0x') else None
+        current_session['data']['ipfs_url'] = f"https://black-persistent-fly-380.mypinata.cloud/ipfs/{result.get('ipfs_cid')}" if result.get('ipfs_cid') and not result.get('ipfs_cid','').startswith('QmSoma') else ipfs_url
         
         return jsonify({
             'status': 'published',
-            'ipfs_url': result.get('ipfs_url'),
+            'ipfs_url': ipfs_url,
             'ipfs_cid': result.get('ipfs_cid'),
-            'tx_hash': result.get('tx_hash'),
+            'ipfs_gateway_url': current_session['data']['ipfs_url'],
+            'tx_hash': tx_hash,
             'tx_url': current_session['data']['tx_url']
         })
         
