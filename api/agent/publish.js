@@ -109,8 +109,12 @@ export default async function handler(req, res) {
                 console.log('[publish] Nonce:', nonce);
                 
                 console.log('[publish] Fetching gas price...');
-                const gasPrice = await provider.getGasPrice();
-                console.log('[publish] Gas price:', ethers.formatUnits(gasPrice, 'gwei'), 'gwei');
+                // ethers v6: use getFeeData() instead of getGasPrice()
+                const feeData = await provider.getFeeData();
+                const maxFeePerGas = feeData.maxFeePerGas || ethers.parseUnits('20', 'gwei');
+                const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || ethers.parseUnits('1', 'gwei');
+                console.log('[publish] Max fee per gas:', ethers.formatUnits(maxFeePerGas, 'gwei'), 'gwei');
+                console.log('[publish] Max priority fee:', ethers.formatUnits(maxPriorityFeePerGas, 'gwei'), 'gwei');
 
                 // Estimate gas
                 console.log('[publish] Estimating gas for mint call...');
@@ -125,7 +129,8 @@ export default async function handler(req, res) {
                 console.log('[publish] Calling mint(' + wallet.address + ', ' + ipfsUrl + ')');
                 const tx = await contract.mint(wallet.address, ipfsUrl, {
                     gasLimit: 300000n,
-                    gasPrice: gasPrice
+                    maxFeePerGas: maxFeePerGas,
+                    maxPriorityFeePerGas: maxPriorityFeePerGas
                 });
 
                 txHash = tx.hash;
