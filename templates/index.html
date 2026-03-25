@@ -255,8 +255,36 @@
                 if (session.status === 'running') {
                     statusEl.textContent = `● Running... ${Math.floor(session.elapsed || 0)}s`;
                 } else if (session.status === 'complete') {
-                    statusEl.textContent = '✅ Complete';
+                    statusEl.textContent = '✅ Complete - Publishing NFT...';
                     showResults(session);
+                    // Auto-call publish endpoint to get real IPFS/NFT URLs
+                    fetch('/api/agent/publish', {method: 'POST'})
+                        .then(r => r.json())
+                        .then(pub => {
+                            console.log('Publish result:', pub);
+                            // Update the results with real URLs
+                            const resultData = document.getElementById('resultData');
+                            let html = '';
+                            if (pub.ipfs_gateway_url) {
+                                html += `<strong>IPFS:</strong><br/>
+                                        <a href="${pub.ipfs_gateway_url}" target="_blank" class="result-link">${pub.ipfs_gateway_url}</a><br/><br/>`;
+                            }
+                            if (pub.tx_hash) {
+                                html += `<strong>Transaction Hash:</strong><br/>${pub.tx_hash}<br/><br/>`;
+                            }
+                            if (pub.tx_url) {
+                                html += `<strong>View on Sepolia:</strong><br/>
+                                        <a href="${pub.tx_url}" target="_blank" class="result-link">${pub.tx_url}</a>`;
+                            }
+                            if (html) {
+                                resultData.innerHTML = html;
+                            }
+                            statusEl.textContent = '✅ Complete';
+                        })
+                        .catch(err => {
+                            console.error('Publish error:', err);
+                            statusEl.textContent = '✅ Complete (publish failed)';
+                        });
                     stopPolling();
                 } else if (session.status === 'error') {
                     statusEl.textContent = '✗ Error';

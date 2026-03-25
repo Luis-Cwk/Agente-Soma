@@ -621,17 +621,44 @@ async function processFrames(duration, btn) {
 
     log('');
     log('[SomaAgent] ✅ Pipeline complete', 'log-ok');
-    document.getElementById('status').textContent = '✅ Complete';
+    document.getElementById('status').textContent = '✅ Complete - Publishing NFT...';
+
+    // Call publish endpoint to get real IPFS/NFT URLs
+    let publishResult = null;
+    try {
+        const pubResp = await fetch('/api/agent/publish', { method: 'POST' });
+        if (pubResp.ok) {
+            publishResult = await pubResp.json();
+            console.log('Publish result:', publishResult);
+        }
+    } catch(e) {
+        console.error('Publish error:', e);
+    }
 
     // Show results
-    document.getElementById('resultData').innerHTML = `
+    let resultsHtml = `
         <strong>NFT Title:</strong> ${escapeHtml(nftTitle)}<br>
         <strong>Movement:</strong> ${dominant} (${(confidence*100).toFixed(1)}% confidence)<br>
         <strong>Keywords:</strong> ${nft.keywords.join(', ')}<br>
         <strong>Emotion:</strong> ${nft.emotion}<br><br>
         <strong>ERC-8004 log_hash:</strong><br>${logHash}
     `;
+
+    if (publishResult) {
+        if (publishResult.ipfs_gateway_url) {
+            resultsHtml += `<br><strong>IPFS:</strong><br><a href="${publishResult.ipfs_gateway_url}" target="_blank" class="result-link">${publishResult.ipfs_gateway_url}</a>`;
+        }
+        if (publishResult.tx_hash) {
+            resultsHtml += `<br><br><strong>Transaction Hash:</strong><br>${publishResult.tx_hash}`;
+        }
+        if (publishResult.tx_url) {
+            resultsHtml += `<br><br><strong>View on Sepolia:</strong><br><a href="${publishResult.tx_url}" target="_blank" class="result-link">${publishResult.tx_url}</a>`;
+        }
+    }
+
+    document.getElementById('resultData').innerHTML = resultsHtml;
     document.getElementById('result').classList.add('show');
+    document.getElementById('status').textContent = publishResult ? '✅ Complete' : '✅ Complete (publish pending)';
 
     btn.disabled = false;
 }
