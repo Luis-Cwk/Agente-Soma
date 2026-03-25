@@ -350,55 +350,148 @@ async function buildERC8004Entry(sessionId, dominant, confidence, labanScores, n
 // ─── Laban classifier ─────────────────────────────────────────────────────
 const LABAN_MOVEMENTS = ['golpear','flotar','deslizar','cortar','presionar','retorcer','sacudir','tocar'];
 
-// ─── Visual Effects (Enhanced from Kori) ──────────────────────────────────
+// ─── Visual Effects (Kori Integration - Hybrid) ────────────────────────────
 let particles = [];
 let glowEffects = [];
 let grids = [];
-let bodyPoints = [];
-let currentLandmarks = [];
-let bodyContourPoints = [];
+let backgroundGridPoints = [];
+let lianaStates = [];
+let asciiChars = [];
+let staticGridMetrics = {};
+let previousPoints = [];
 
-class GlowEffect {
-    constructor(x, y, color = '#00ff00') {
+// ─── Lianas Background Grid ───────────────────────────────────────────────
+class BackgroundGridPoint {
+    constructor(x, y, originalColor) {
+        this.originalX = x;
+        this.originalY = y;
         this.x = x;
         this.y = y;
-        this.intensity = 1.0;
-        this.decay = 0.05;
-        this.color = color;
-        this.size = 8;
+        this.color = originalColor;
+        this.isAffected = false;
+        this.effectTimer = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.basePulseSize = 4;
+        this.pulseMagnitude = 2;
+        this.pulsePhaseOffset = (this.originalX * 0.01 + this.originalY * 0.005);
     }
-    
+
     update() {
-        this.intensity -= this.decay;
-        return this.intensity > 0;
-    }
-    
-    draw(ctx) {
-        ctx.save();
-        for (let i = 0; i < 4; i++) {
-            const size = this.size * (1 - i * 0.25);
-            const alpha = this.intensity * (100 - i * 25);
-            ctx.fillStyle = `rgba(0,255,0,${alpha / 255})`;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
-            ctx.fill();
+        if (this.isAffected) {
+            this.effectTimer += 0.1;
+            this.offsetX = Math.sin(this.effectTimer * 2.5) * 4;
+            this.offsetY = Math.cos(this.effectTimer * 3.0) * 3;
+            if (this.effectTimer > Math.PI * 0.75) {
+                this.isAffected = false;
+                this.effectTimer = 0;
+            }
+        } else {
+            this.offsetX = 0.9 * this.offsetX;
+            this.offsetY = 0.9 * this.offsetY;
         }
-        ctx.restore();
+        this.x = this.originalX + this.offsetX;
+        this.y = this.originalY + this.offsetY;
+        this.currentPulseSize = this.basePulseSize + Math.sin(Date.now() / 500.0 + this.pulsePhaseOffset) * this.pulseMagnitude;
+    }
+
+    display(ctx) {
+        ctx.fillStyle = `rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.currentPulseSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+    }
+
+    triggerEffect() {
+        this.isAffected = true;
+        this.effectTimer = 0;
     }
 }
 
-class Particle {
-    constructor(x, y, color) {
+// ─── ASCII Characters ───────────────────────────────────────────────────
+class ASCIIChar {
+    constructor(x, y, character) {
+        this.originalX = x;
+        this.originalY = y;
         this.x = x;
         this.y = y;
-        this.vx = (Math.random() - 0.5) * 10;
-        this.vy = (Math.random() - 0.5) * 10;
+        this.character = character;
+        this.scale = 1.0;
+        this.alpha = 0;
+        this.isVisible = false;
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        this.isAffected = false;
+        this.effectTimer = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.baseSize = 11;
+    }
+
+    update() {
+        if (this.isAffected) {
+            this.effectTimer += 0.1;
+            this.offsetX = Math.sin(this.effectTimer * 1.5) * 8;
+            this.offsetY = Math.cos(this.effectTimer * 2.0) * 6;
+            this.alpha = 255;
+            this.scale = 1.3 + Math.sin(this.effectTimer * 2.5) * 0.2;
+            this.isVisible = true;
+            if (this.effectTimer > Math.PI * 1.5) {
+                this.isAffected = false;
+                this.effectTimer = 0;
+            }
+        } else {
+            this.offsetX = 0.9 * this.offsetX;
+            this.offsetY = 0.9 * this.offsetY;
+            this.alpha = this.alpha * 0.95;
+            if (this.alpha < 1) {
+                this.alpha = 0;
+                this.isVisible = false;
+                this.scale = 1.0;
+            } else {
+                this.isVisible = true;
+                let pulse = Math.sin(Date.now() * 0.002 + this.pulsePhase) * 0.05;
+                this.scale = 1.0 + pulse;
+            }
+        }
+        this.x = this.originalX + this.offsetX;
+        this.y = this.originalY + this.offsetY;
+    }
+
+    display(ctx) {
+        if (this.alpha < 1) return;
+        ctx.save();
+        ctx.fillStyle = `rgba(200,255,255,${this.alpha})`;
+        ctx.font = `${this.baseSize}px 'Monaco', monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.globalAlpha = this.alpha / 255;
+        ctx.fillText(this.character, this.x, this.y);
+        ctx.restore();
+    }
+
+    triggerEffect() {
+        this.isAffected = true;
+        this.effectTimer = 0;
+        this.isVisible = true;
+        this.alpha = 255;
+    }
+}
+
+// ─── Particles ───────────────────────────────────────────────────────────
+class Particle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8;
         this.life = 1.0;
         this.decay = 0.02;
-        this.color = color;
-        this.size = 2 + Math.random() * 4;
+        this.size = 2 + Math.random() * 3;
     }
-    
+
     update() {
         this.x += this.vx;
         this.y += this.vy;
@@ -407,105 +500,141 @@ class Particle {
         this.life -= this.decay;
         return this.life > 0;
     }
-    
-    draw(ctx) {
-        ctx.save();
-        ctx.fillStyle = `rgba(100,200,255,${this.life})`;
+
+    display(ctx) {
+        ctx.fillStyle = `rgba(100,200,255,${this.life * 0.8})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
     }
 }
 
-class FallingGrid {
-    constructor() {
-        this.x = Math.random() * 640;
-        this.y = -100 - Math.random() * 200;
-        this.speed = 1 + Math.random() * 2;
-        this.size = 20 + Math.random() * 50;
-        this.rotation = Math.random() * Math.PI * 2;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
-    }
-    
-    update() {
-        this.y += this.speed;
-        this.rotation += this.rotationSpeed;
-        return this.y < 480 + 100;
-    }
-    
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
-        ctx.strokeStyle = 'rgba(100,200,255,0.3)';
-        ctx.lineWidth = 2;
-        for (let i = 1; i <= 5; i++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, (this.size / 2.5) * i, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-}
+// ─── Setup Functions ───────────────────────────────────────────────────
+function setupBackgroundGrid(w, h) {
+    const gridSpacing = 50;
+    backgroundGridPoints = [];
+    const cols = Math.floor(w / gridSpacing);
+    const rows = Math.floor(h / gridSpacing);
+    const gridWidth = cols * gridSpacing;
+    const gridHeight = rows * gridSpacing;
+    const offsetX = (w - gridWidth + gridSpacing) / 2;
+    const offsetY = (h - gridHeight + gridSpacing) / 2;
 
-function spawnParticles(x, y, count = 5) {
-    for (let i = 0; i < count; i++) {
-        particles.push(new Particle(x, y, `hsl(${Math.random() * 60 + 180}, 80%, 50%)`));
+    staticGridMetrics = { gridSpacing, cols, rows, offsetX, offsetY };
+
+    lianaStates = [];
+    for (let c = 0; c < cols; c++) {
+        lianaStates.push({ waves: [] });
     }
-}
 
-function spawnGlow(x, y) {
-    glowEffects.push(new GlowEffect(x, y, '#00ff88'));
-}
-
-function drawBodyContour(ctx, landmarks) {
-    if (!landmarks || landmarks.length === 0) return;
-    
-    // Define skeleton connections
-    const connections = [
-        [0, 1], [0, 4], [1, 2], [2, 3], [1, 5], [5, 6], [6, 7],
-        [0, 9], [9, 10], [10, 11], [0, 13], [13, 14], [14, 15],
-        [5, 9], [12, 11], [8, 14], [7, 15]
-    ];
-    
-    ctx.save();
-    ctx.strokeStyle = 'rgba(100,200,255,0.8)';
-    ctx.lineWidth = 2;
-    
-    for (const [a, b] of connections) {
-        if (landmarks[a] && landmarks[b]) {
-            ctx.beginPath();
-            ctx.moveTo(landmarks[a].x, landmarks[a].y);
-            ctx.lineTo(landmarks[b].x, landmarks[b].y);
-            ctx.stroke();
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = offsetX + c * gridSpacing;
+            const y = offsetY + r * gridSpacing;
+            const dotColor = [(c + r) % 2 === 0 ? 255 : 200, 255, 255, (c + r) % 2 === 0 ? 180 : 150];
+            backgroundGridPoints.push(new BackgroundGridPoint(x, y, dotColor));
         }
     }
-    ctx.restore();
 }
 
-function drawBodyPoints(ctx, landmarks) {
-    if (!landmarks) return;
-    ctx.save();
-    for (const lm of landmarks) {
-        if (!lm) continue;
-        // Glow circles
-        for (let i = 3; i > 0; i--) {
-            ctx.fillStyle = `rgba(100,200,255,${14 / i})`;
-            ctx.beginPath();
-            ctx.arc(lm.x, lm.y, i * 6, 0, Math.PI * 2);
-            ctx.fill();
+function setupASCIIGrid(w, h) {
+    const chars = ['M', 'M', '➅'];
+    const spacingX = 75;
+    const spacingY = 75;
+    asciiChars = [];
+    let charIndex = 0;
+    for (let y = spacingY / 4; y < h; y += spacingY) {
+        for (let x = spacingX / 4; x < w; x += spacingX) {
+            let selectedChar = chars[charIndex % chars.length];
+            asciiChars.push(new ASCIIChar(x, y, selectedChar));
+            charIndex++;
         }
-        // Center point
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = 'rgba(100,200,255,0.6)';
-        ctx.fillStyle = 'white';
+    }
+}
+
+function drawLianas(ctx, w, h) {
+    if (!staticGridMetrics.cols) return;
+    const { cols, offsetX, gridSpacing } = staticGridMetrics;
+    ctx.strokeStyle = 'rgba(100,200,255,0.4)';
+    ctx.lineWidth = 1.5;
+    for (let c = 0; c < cols; c++) {
+        const xLiana = offsetX + c * gridSpacing;
+        let waves = lianaStates[c] ? lianaStates[c].waves : [];
+        for (let w_idx = waves.length - 1; w_idx >= 0; w_idx--) {
+            waves[w_idx].amplitude *= 0.92;
+            waves[w_idx].phase += 0.25;
+            if (waves[w_idx].amplitude < 0.5) waves.splice(w_idx, 1);
+        }
         ctx.beginPath();
-        ctx.arc(lm.x, lm.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.moveTo(xLiana, -20);
+        for (let i = 0; i < 15; i++) {
+            let ySegment = (h / 15) * i;
+            let xOffset = 0;
+            for (const wave of waves) {
+                let distY = Math.abs(ySegment - wave.y);
+                let falloff = Math.exp(-Math.pow(distY / 60, 2));
+                xOffset += Math.sin(wave.phase + i * 0.7) * wave.amplitude * falloff;
+            }
+            ctx.lineTo(xLiana + xOffset, ySegment);
+        }
+        ctx.moveTo(xLiana, h);
+        ctx.stroke();
     }
-    ctx.restore();
+}
+
+function checkBodyCollisions(landmarks, w, h) {
+    if (!landmarks || landmarks.length === 0) return;
+    const collisionRadius = 25;
+
+    // Colisiones con lianas
+    if (staticGridMetrics.cols) {
+        const { cols, offsetX, gridSpacing } = staticGridMetrics;
+        for (let c = 0; c < cols; c++) {
+            const xLiana = offsetX + c * gridSpacing;
+            for (let lm of landmarks) {
+                let d = Math.abs(lm.x - xLiana);
+                if (d < collisionRadius) {
+                    let intensity = (collisionRadius - d);
+                    lianaStates[c].waves.push({
+                        y: lm.y,
+                        amplitude: intensity * 0.6,
+                        phase: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+        }
+    }
+
+    // Colisiones con rejilla
+    for (let gridPoint of backgroundGridPoints) {
+        let collided = false;
+        for (let lm of landmarks) {
+            let d = Math.hypot(lm.x - gridPoint.originalX, lm.y - gridPoint.originalY);
+            if (d < collisionRadius) {
+                collided = true;
+                break;
+            }
+        }
+        if (collided) {
+            gridPoint.triggerEffect();
+        }
+    }
+
+    // Colisiones con ASCII
+    for (let ascii of asciiChars) {
+        let collided = false;
+        for (let lm of landmarks) {
+            let d = Math.hypot(lm.x - ascii.x, lm.y - ascii.y);
+            if (d < 15) {
+                collided = true;
+                break;
+            }
+        }
+        if (collided) {
+            ascii.triggerEffect();
+            particles.push(new Particle(ascii.x, ascii.y));
+        }
+    }
 }
 
 function classifyLaban(landmarks) {
@@ -600,9 +729,10 @@ async function startCapture() {
     logs = [];
     frameBuffer = [];
     particles = [];
-    glowEffects = [];
-    grids = [];
-    currentLandmarks = [];
+    backgroundGridPoints = [];
+    asciiChars = [];
+    lianaStates = [];
+    staticGridMetrics = {};
     document.getElementById('result').classList.remove('show');
     document.getElementById('status').textContent = '● Starting...';
 
@@ -624,6 +754,12 @@ async function startCapture() {
         await new Promise(r => videoEl.onloadedmetadata = r);
         canvasEl.width = videoEl.videoWidth;
         canvasEl.height = videoEl.videoHeight;
+        
+        // Initialize visual effects (Kori - Hybrid)
+        setupBackgroundGrid(canvasEl.width, canvasEl.height);
+        setupASCIIGrid(canvasEl.width, canvasEl.height);
+        log('[perception] Visual grid initialized ✓', 'log-ok');
+        
         log('[perception] Camera stream active ✓', 'log-ok');
     } catch (e) {
         log(`[perception] Camera error: ${e.message}`, 'log-err');
@@ -697,42 +833,39 @@ function onPoseResults(results) {
     if (!capturing || !results.poseLandmarks) return;
     frameBuffer.push([...results.poseLandmarks]);
 
-    // Store landmarks for effect generation
-    currentLandmarks = results.poseLandmarks;
-
-    // Canvas drawing
     const canvasEl = document.getElementById('canvasEl');
     const ctx = canvasEl.getContext('2d');
-    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-
-    // ─── Visual Effects Enhanced ───────────────────────────────────────
     
-    // Update & draw falling grids
-    grids = grids.filter(g => g.update());
-    if (Math.random() < 0.15) {
-        grids.push(new FallingGrid());
+    // ─── Clear & Background ────────────────────────────────────────
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+
+    // ─── Draw Lianas (Kori) ────────────────────────────────────────
+    drawLianas(ctx, canvasEl.width, canvasEl.height);
+
+    // ─── Update & Draw Background Grid Points ─────────────────────
+    for (let point of backgroundGridPoints) {
+        point.update();
+        point.display(ctx);
     }
-    grids.forEach(g => g.draw(ctx));
 
-    // Update & draw particles
+    // ─── Update & Draw Particles ───────────────────────────────────
     particles = particles.filter(p => p.update());
-    particles.forEach(p => p.draw(ctx));
+    particles.forEach(p => p.display(ctx));
 
-    // Update & draw glow effects
-    glowEffects = glowEffects.filter(g => g.update());
-    glowEffects.forEach(g => g.draw(ctx));
+    // ─── Check Body Collisions & Update ASCII ──────────────────────
+    checkBodyCollisions(results.poseLandmarks, canvasEl.width, canvasEl.height);
+    
+    for (let ascii of asciiChars) {
+        ascii.update();
+        ascii.display(ctx);
+    }
 
-    // ─── Skeleton with Enhanced Visuals ──────────────────────────────
+    // ─── Draw Skeleton (Enhanced) ───────────────────────────────
+    ctx.strokeStyle = 'rgba(100,200,255,0.8)';
+    ctx.lineWidth = 2;
     
-    // Draw body contour (connecting skeleton)
-    drawBodyContour(ctx, results.poseLandmarks);
-    
-    // Draw body points with glow
-    drawBodyPoints(ctx, results.poseLandmarks);
-    
-    // Draw connections (MediaPipe style but with colors)
-    ctx.strokeStyle = 'rgba(100,200,255,0.6)';
-    ctx.lineWidth = 1.5;
+    // Draw connections
     for (const [a, b] of POSE_CONNECTIONS) {
         if (results.poseLandmarks[a] && results.poseLandmarks[b]) {
             const lmA = results.poseLandmarks[a];
@@ -744,12 +877,29 @@ function onPoseResults(results) {
         }
     }
 
-    // Generate particles & glow on significant movement
-    if (Math.random() < 0.3) {
+    // Draw landmarks with glow
+    for (const lm of results.poseLandmarks) {
+        if (!lm) continue;
+        for (let i = 3; i > 0; i--) {
+            ctx.fillStyle = `rgba(100,200,255,${14 / i})`;
+            ctx.beginPath();
+            ctx.arc(lm.x, lm.y, i * 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(100,200,255,0.6)';
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(lm.x, lm.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // Random particle spawn
+    if (Math.random() < 0.2) {
         const randomLm = results.poseLandmarks[Math.floor(Math.random() * results.poseLandmarks.length)];
         if (randomLm) {
-            spawnParticles(randomLm.x, randomLm.y, 2);
-            if (Math.random() < 0.5) spawnGlow(randomLm.x, randomLm.y);
+            particles.push(new Particle(randomLm.x, randomLm.y));
         }
     }
 }
