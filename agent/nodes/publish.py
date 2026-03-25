@@ -189,9 +189,9 @@ def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 8.0)
             "from": account.address,
             "nonce": nonce,
             "gas": 200000,
-            "maxFeePerGas": w3.to_wei("20", "gwei"),  # Hardcoded for Sepolia
-            "maxPriorityFeePerGas": w3.to_wei("1", "gwei"),  # Hardcoded for Sepolia
-            "chainId": 11155111  # Sepolia testnet
+            "maxFeePerGas": w3.to_wei("3", "gwei"),  # Base Mainnet gas price
+            "maxPriorityFeePerGas": w3.to_wei("0.1", "gwei"),  # Base Mainnet priority
+            "chainId": 8453  # Base Mainnet
         })
 
         if time.monotonic() > deadline:
@@ -200,13 +200,13 @@ def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 8.0)
         print(f"[PUBLISH]   🔏 Signing transaction...")
         sys.stdout.flush()
         signed = account.sign_transaction(tx)
-        print(f"[PUBLISH] ✅ Sending transaction to Sepolia...")
+        print(f"[PUBLISH] ✅ Sending transaction to Base Mainnet...")
         sys.stdout.flush()
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hash_hex = tx_hash.hex()
         print(f"[PUBLISH] ✅ TX SENT: {tx_hash_hex}")
         sys.stdout.flush()
-        print(f"[PUBLISH] 📊 View on Sepolia: https://sepolia.etherscan.io/tx/{tx_hash_hex}")
+        print(f"[PUBLISH] 📊 View on Base: https://basescan.org/tx/{tx_hash_hex}")
         sys.stdout.flush()
         
         # Return immediately - don't wait for receipt (this was causing UI freeze)
@@ -236,7 +236,7 @@ def _approve_nft_for_auction(token_id: int, wallet_address: str) -> bool:
             account = w3.eth.account.from_key(WALLET_PRIVATE_KEY)
             nonce = w3.eth.get_transaction_count(account.address)
         except Exception as e:
-            raise Exception(f"Cannot connect to Sepolia RPC: {str(e)}")
+            raise Exception(f"Cannot connect to Base RPC: {str(e)}")
         contract = w3.eth.contract(
             address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS),
             abi=MINT_ABI
