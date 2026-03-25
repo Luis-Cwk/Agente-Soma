@@ -567,8 +567,8 @@ function drawLianas(ctx, w, h) {
         }
         ctx.beginPath();
         ctx.moveTo(xLiana, -20);
-        for (let i = 0; i < 15; i++) {
-            let ySegment = (h / 15) * i;
+        for (let i = 0; i <= 25; i++) {
+            let ySegment = (h / 25) * i;
             let xOffset = 0;
             for (const wave of waves) {
                 let distY = Math.abs(ySegment - wave.y);
@@ -577,7 +577,6 @@ function drawLianas(ctx, w, h) {
             }
             ctx.lineTo(xLiana + xOffset, ySegment);
         }
-        ctx.moveTo(xLiana, h);
         ctx.stroke();
     }
 }
