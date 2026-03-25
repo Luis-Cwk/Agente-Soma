@@ -374,14 +374,24 @@ def publish_node(state: AgentState) -> AgentState:
     # ─── NFT Mint ─────────────────────────────────────────────────────────────
     print(f"[PUBLISH] 🚀 Starting blockchain phase...")
     sys.stdout.flush()
-    tx_hash = "0x_no_mint"
+    tx_hash = None
     tx_url = None
     token_id = None
     auction_tx = None
 
+    # Debug: check environment
+    print(f"[PUBLISH] DEBUG: WALLET_PRIVATE_KEY = {'<set>' if WALLET_PRIVATE_KEY else '<EMPTY>'}")
+    print(f"[PUBLISH] DEBUG: NFT_CONTRACT_ADDRESS = {NFT_CONTRACT_ADDRESS[:10] + '...' if NFT_CONTRACT_ADDRESS else '<EMPTY>'}")
+    print(f"[PUBLISH] DEBUG: BASE_RPC_URL = {'<set>' if BASE_RPC_URL else '<EMPTY>'}")
+    sys.stdout.flush()
+
     # Check if wallet and contract are properly configured
     wallet_configured = _is_valid_private_key(WALLET_PRIVATE_KEY)
     contract_configured = _is_valid_contract_address(NFT_CONTRACT_ADDRESS)
+
+    print(f"[PUBLISH] DEBUG: wallet_configured = {wallet_configured}")
+    print(f"[PUBLISH] DEBUG: contract_configured = {contract_configured}")
+    sys.stdout.flush()
 
     if not wallet_configured:
         print(f"[PUBLISH]   ⚠ Wallet not configured (invalid or placeholder WALLET_PRIVATE_KEY)")
@@ -420,9 +430,9 @@ def publish_node(state: AgentState) -> AgentState:
 
             print(f"[PUBLISH] ✅ NFT minted: {tx_hash[:10]}... (token_id: {token_id})")
 
-            # Build explorer URL for UI hyperlink (Sepolia) — allow dry-run hashes too
+            # Build explorer URL for UI hyperlink (Base Mainnet) — allow dry-run hashes too
             if tx_hash and tx_hash.startswith("0x"):
-                tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
+                tx_url = f"https://basescan.org/tx/{tx_hash}"
 
             # ─── Auction (RARE Protocol / SuperRare) ───────────────────────────────
             if AUCTION_ENABLED and token_id:
@@ -436,9 +446,18 @@ def publish_node(state: AgentState) -> AgentState:
                     # Step 2: Create auction
                     auction_tx = _create_auction(token_id, wallet_address)
         except Exception as e:
-            print(f"[PUBLISH] Mint error (SKIPPED): {e}")
+            print(f"[PUBLISH] ❌ Mint error (SKIPPED): {e}")
+            import traceback
+            traceback.print_exc()
+            sys.stdout.flush()
+            tx_hash = "0x_mint_failed"
+            tx_url = None
     else:
-        print(f"[PUBLISH] Skipping mint — configure WALLET_PRIVATE_KEY and NFT_CONTRACT_ADDRESS in .env")
+        print(f"[PUBLISH] ⚠️  Cannot mint — configure both WALLET_PRIVATE_KEY and NFT_CONTRACT_ADDRESS in .env")
+        print(f"[PUBLISH] ⚠️  wallet_configured={wallet_configured}, contract_configured={contract_configured}")
+        tx_hash = "0x_no_config"
+        tx_url = None
+        sys.stdout.flush()
         try:
             # Step 1: Approve NFT transfer to SuperRareBazaar
             if AUCTION_ENABLED and False:  # Would need token_id
@@ -462,10 +481,19 @@ def publish_node(state: AgentState) -> AgentState:
         print(f"[PUBLISH] No auction — set AUCTION_ENABLED=true in .env to enable SuperRare flow")
         sys.stdout.flush()
 
+    # Ensure tx_hash is never null — always set a valid fallback
+    if tx_hash is None:
+        print(f"[PUBLISH] ⚠️  WARNING: tx_hash was None, setting to fallback")
+        tx_hash = "0x_fallback_null"
+        sys.stdout.flush()
+
     # Ensure tx_url exists even on skipped/dry-run mints so the UI shows a link
     if (not tx_url) and tx_hash and tx_hash.startswith("0x"):
-        tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
+        tx_url = f"https://basescan.org/tx/{tx_hash}"
 
+    print(f"[PUBLISH] Final tx_hash: {tx_hash}")
+    print(f"[PUBLISH] Final tx_url: {tx_url}")
+    sys.stdout.flush()
     print(f"[API] ✅ PIPELINE COMPLETED")
     sys.stdout.flush()
     
