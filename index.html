@@ -773,11 +773,9 @@ async function startCapture() {
     document.getElementById('status').textContent = '● Loading AI model...';
 
     try {
-        // Destroy previous instance if exists
-        if (poseInstance) {
-            poseInstance.close();
-            poseInstance = null;
-        }
+        // Clear previous instance if exists (don't call .close() - MediaPipe doesn't have it)
+        poseInstance = null;
+        await new Promise(r => setTimeout(r, 100));
         
         poseInstance = new Pose({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -796,6 +794,7 @@ async function startCapture() {
         log('[perception] Switching to dry-run mode', 'log-ok');
         poseInstance = null;
         await runDryRun(duration, btn, videoWrap, stream);
+        btn.disabled = false;
         return;
     }
 
@@ -829,11 +828,18 @@ async function startCapture() {
     // Stop
     capturing = false;
     if (cameraInstance) { await cameraInstance.stop(); cameraInstance = null; }
-    if (poseInstance) { poseInstance.close(); poseInstance = null; }
+    // Don't call .close() on poseInstance - MediaPipe doesn't have that method
+    poseInstance = null;
     if (stream) stream.getTracks().forEach(t => t.stop());
     videoWrap.style.display = 'none';
 
-    await processFrames(duration, btn);
+    try {
+        await processFrames(duration, btn);
+    } catch(err) {
+        console.error('[startCapture] Error in processFrames:', err);
+        btn.disabled = false;
+        document.getElementById('status').textContent = '⚠️ Error';
+    }
 }
 
 function onPoseResults(results) {
@@ -939,23 +945,30 @@ async function runDryRun(duration, btn, videoWrap, stream) {
         }))
     );
 
-    await processFrames(duration, btn);
+    try {
+        await processFrames(duration, btn);
+    } catch(err) {
+        console.error('[runDryRun] Error in processFrames:', err);
+        btn.disabled = false;
+        document.getElementById('status').textContent = '⚠️ Error';
+    }
 }
 
 async function processFrames(duration, btn) {
-    const sessionId = uid();
-    log('');
-    log('[SomaAgent] ── Analysis Pipeline ──', 'log-bold');
+    try {
+        const sessionId = uid();
+        log('');
+        log('[SomaAgent] ── Analysis Pipeline ──', 'log-bold');
 
-    // 1. Classify Laban
-    log('[reasoning] Classifying Laban effort qualities...');
-    await sleep(600);
+        // 1. Classify Laban
+        log('[reasoning] Classifying Laban effort qualities...');
+        await sleep(600);
 
-    const avgLandmarks = frameBuffer.length > 0
-        ? frameBuffer[Math.floor(frameBuffer.length / 2)]
-        : null;
+        const avgLandmarks = frameBuffer.length > 0
+            ? frameBuffer[Math.floor(frameBuffer.length / 2)]
+            : null;
 
-    const { dominant, scores } = classifyLaban(avgLandmarks);
+        const { dominant, scores } = classifyLaban(avgLandmarks);
     const confidence = scores[dominant];
     const nft = NFT_MAP[dominant] || NFT_MAP.sacudir;
 
@@ -1066,7 +1079,13 @@ async function processFrames(duration, btn) {
     document.getElementById('result').classList.add('show');
     document.getElementById('status').textContent = (publishResult && publishResult.status !== 'error') ? '✅ Complete' : '✅ Complete';
 
-    btn.disabled = false;
+    } catch(err) {
+        console.error('[processFrames] Error:', err);
+        log('[SomaAgent] ❌ Pipeline error: ' + err.message, 'log-err');
+        document.getElementById('status').textContent = '⚠️ Error occurred';
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
