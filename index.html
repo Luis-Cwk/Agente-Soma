@@ -773,6 +773,12 @@ async function startCapture() {
     document.getElementById('status').textContent = '● Loading AI model...';
 
     try {
+        // Destroy previous instance if exists
+        if (poseInstance) {
+            poseInstance.close();
+            poseInstance = null;
+        }
+        
         poseInstance = new Pose({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
         });
@@ -788,6 +794,7 @@ async function startCapture() {
     } catch(e) {
         log(`[perception] MediaPipe unavailable: ${e.message}`, 'log-err');
         log('[perception] Switching to dry-run mode', 'log-ok');
+        poseInstance = null;
         await runDryRun(duration, btn, videoWrap, stream);
         return;
     }
@@ -822,6 +829,7 @@ async function startCapture() {
     // Stop
     capturing = false;
     if (cameraInstance) { await cameraInstance.stop(); cameraInstance = null; }
+    if (poseInstance) { poseInstance.close(); poseInstance = null; }
     if (stream) stream.getTracks().forEach(t => t.stop());
     videoWrap.style.display = 'none';
 
@@ -871,8 +879,8 @@ function onPoseResults(results) {
     }
 
     // ─── Draw Skeleton (Enhanced) ───────────────────────────────
-    ctx.strokeStyle = 'rgba(100,200,255,0.8)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1.5;
     
     // Draw connections
     for (const [a, b] of POSE_CONNECTIONS) {
@@ -886,20 +894,20 @@ function onPoseResults(results) {
         }
     }
 
-    // Draw landmarks with glow
+    // Draw landmarks with subtle glow
     for (const lm of normalizedLandmarks) {
         if (!lm) continue;
-        for (let i = 3; i > 0; i--) {
-            ctx.fillStyle = `rgba(100,200,255,${14 / i})`;
+        for (let i = 2; i > 0; i--) {
+            ctx.fillStyle = `rgba(255,255,255,${8 / i})`;
             ctx.beginPath();
-            ctx.arc(lm.x, lm.y, i * 6, 0, Math.PI * 2);
+            ctx.arc(lm.x, lm.y, i * 2, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = 'rgba(100,200,255,0.6)';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(255,255,255,0.4)';
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        ctx.arc(lm.x, lm.y, 5, 0, Math.PI * 2);
+        ctx.arc(lm.x, lm.y, 2.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
     }
