@@ -400,7 +400,7 @@ def publish_node(state: AgentState) -> AgentState:
             mint_result = {}
 
             def run_mint():
-                txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=8.0)
+                txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=5.0)
                 mint_result['tx_hash'] = txh
                 mint_result['token_id'] = tid
 

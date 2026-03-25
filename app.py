@@ -124,7 +124,7 @@ def start_capture():
         'data': {}
     }
     
-    duration = request.json.get('duration', 15)
+    duration = request.json.get('duration', 8)
     
     def run_capture():
         global current_session, current_session_id
@@ -183,7 +183,7 @@ def start_capture():
             worker.start()
 
             # Timeout: capture duration + 10s buffer
-            timeout_seconds = duration + 10
+            timeout_seconds = 9
             worker.join(timeout_seconds)
 
             if worker.is_alive():
