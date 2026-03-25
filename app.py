@@ -183,7 +183,7 @@ def start_capture():
             worker.start()
 
             # Timeout: capture duration + 10s buffer
-            timeout_seconds = 9
+            timeout_seconds = 8
             worker.join(timeout_seconds)
 
             if worker.is_alive():

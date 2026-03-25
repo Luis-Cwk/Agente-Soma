@@ -275,14 +275,22 @@
             const data = (session && session.data) || lastSessionData || {};
             const txHashFromSession = data.tx_hash || '';
             const sepoliaUrlFromSession = data.tx_url || (data.tx_hash ? `https://sepolia.etherscan.io/tx/${data.tx_hash}` : '');
+            const ipfsUrlFromSession = data.ipfs_url || data.ipfs || '';
+            const ipfsGatewayFromSession = data.ipfs_gateway_url || '';
 
             // Extract from logs as fallback
             const txMatch = allLogs.find(log => log.includes('TX SENT:'));
             const sepoliaMatch = allLogs.find(log => log.includes('View on Sepolia:'));
+            const ipfsMatch = allLogs.find(log => log.includes('IPFS ready:'));
 
             const txHash = txHashFromSession || (txMatch ? (txMatch.match(/TX SENT: (0x?[A-Fa-f0-9]+)/) || [])[1] : '');
             const sepoliaUrl = sepoliaUrlFromSession || (sepoliaMatch ? (sepoliaMatch.match(/(https:\/\/[^\s]+)/) || [])[1] : '');
+            const ipfsUrl = ipfsGatewayFromSession || ipfsUrlFromSession || '';
 
+            if (ipfsUrl) {
+                html += `<strong>IPFS:</strong><br/>
+                        <a href="${ipfsUrl}" target="_blank" class="result-link">${ipfsUrl}</a><br/><br/>`;
+            }
             if (txHash) {
                 html += `<strong>Transaction Hash:</strong><br/>${txHash}<br/><br/>`;
             }
