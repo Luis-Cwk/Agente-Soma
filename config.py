@@ -26,7 +26,7 @@ PINATA_SECRET_KEY = os.getenv("PINATA_SECRET_KEY", "")
 PINATA_ENDPOINT   = "https://api.pinata.cloud/pinning/pinJSONToIPFS"
 
 # ─── Blockchain / NFT ─────────────────────────────────────────
-BASE_RPC_URL          = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
+BASE_RPC_URL          = os.getenv("BASE_RPC_URL", "https://ethereum-sepolia-rpc.publicnode.com")
 WALLET_PRIVATE_KEY    = os.getenv("WALLET_PRIVATE_KEY", "")
 NFT_CONTRACT_ADDRESS  = os.getenv("NFT_CONTRACT_ADDRESS", "")
 

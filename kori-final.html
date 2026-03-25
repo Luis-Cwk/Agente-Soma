@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Google Fonts: Roboto Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.dom.js"></script>
+    <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Roboto Mono', 'Courier New', monospace;
+            font-weight: 300;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 14px;
+            z-index: 1000;
+            text-shadow: 0 0 10px #00ffff;
+            display: none;
+            /* Ocultar el div de información */
+        }
+
+        #audioBtn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            padding: 10px 22px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            box-shadow: 0 0 16px #00ffff80;
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.3s, pointer-events 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="audioBtn">🔊 Iniciar Audio</button>
+    <div id="info">
+        <div>SISTEMA DE RASTREO CORPORAL</div>
+        <div>ESTADO: <span id="status">INICIALIZANDO...</span></div>
+        <div>PUNTOS DETECTADOS: <span id="points">0</span></div>
+    </div>
+
+    <script>
+        // --- Variables de p5.js y PoseNet ---
+        let video;
+        let poseNet;
+        let currentPoses = [];
+
+        // --- Variables de Visualización ---
+        let grids = [];
+        let particles = [];
+        let glowEffects = [];
+        let time = 0;
+        let asciiChars = []; // Nueva matriz para los caracteres ASCII (MM6)
+        let backgroundGridPoints = []; // Nueva matriz para los puntos de la rejilla de fondo interactiva
+        let staticGridMetrics = {}; // Para métricas de la rejilla estática del fondo, usado en drawBackground_p5
+        let lianaStates = []; // Guarda el estado de vibración de cada liana
+
+        // --- Variables de Interacción y Sonido ---
+        let synth = null;
+        let padSynth = null;
+        let arpSynth = null;
+        let noiseSynth = null;
+        let fxReverb = null;
+        let fxDelay = null;
+        let fxBitCrusher = null;
+        let isAudioStarted = false;
+        let audioBtn = null;
+        let previousPoints = [];
+        let velocities = [];
+        let arpPattern = [0, 3, 7, 10, 14, 17, 21]; // Escalado para arpegio digital
+        let arpStep = 0;
+        let arpInterval = null;
+        let padChord = ["C3", "G3", "D#4", "A#3"];
+        let padIsActive = false;
+        let darkAmbientVolume = null;
+
+        // --- Variables para el suavizado ---
+        let bodyPose;
+        let hands;
+        let handsVideo;
+        let handsCanvas;
+        let handsCtx;
+        let handLandmarks = [];
+        let smoothedKeypoints = {};
+        const smoothingFactor = 0.25;
+
+        const poseNetOptions = {
+            flipHorizontal: false,
+            maxPoseDetections: 1,
+            scoreThreshold: 0.5,
+            nmsRadius: 20
+        };
+
+        function modelLoaded() {
+            console.log("Modelo PoseNet Cargado!");
+            document.getElementById('status').textContent = 'LISTO (esperando audio)';
+        }
+
+        function gotPoses(results) {
+            currentPoses = results;
+        }
+
+        async function setup() {
+            createCanvas(windowWidth, windowHeight);
+            
+            // Inicializar el canvas para las manos
+            handsCanvas = createGraphics(windowWidth, windowHeight);
+            handsCtx = handsCanvas.canvas.getContext('2d');
+            
+            // Configurar el video para la entrada de la cámara
+            handsVideo = createCapture(VIDEO);
+            handsVideo.size(width, height);
+            handsVideo.hide();
+            
+            // Inicializar el detector de manos
+            hands = new Hands({locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }});
+            
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(onHandsResults);
+            
+            // Iniciar el procesamiento de video
+            startHandsDetection();
+            frameRate(60);
+            setupAudioBtn();
+            video = createCapture(VIDEO);
+            video.size(width, height);
+            video.hide();
+            poseNet = ml5.poseNet(video, poseNetOptions, modelLoaded);
+            poseNet.on('pose', gotPoses);
+            createGrids(); // Para los círculos grandes que caen
+            setupStaticBackgroundGrid(); // Para la rejilla de fondo con puntos interactivos
+            createASCIIGrid(); // Crear la rejilla de caracteres MM6
+        }
+
+        // Función para procesar los resultados de la detección de manos
+        function onHandsResults(results) {
+            handLandmarks = [];
+            if (results.multiHandLandmarks) {
+                // Convertir los landmarks a un formato más manejable
+                for (const landmarks of results.multiHandLandmarks) {
+                    handLandmarks.push(landmarks.map(point => ({
+                        x: point.x * width,
+                        y: point.y * height,
+                        z: point.z || 0
+                    })));
+                }
+            }
+        }
+
+        // Función para iniciar la detección de manos
+        async function startHandsDetection() {
+            while (true) {
+                if (handsVideo.elt.readyState >= 2) {
+                    await hands.send({image: handsVideo.elt});
+                }
+                await new Promise(resolve => requestAnimationFrame(resolve));
+            }
+        }
+
+        // Función para dibujar las manos
+        function drawHands() {
+            push();
+            for (const hand of handLandmarks) {
+                // --- Conexiones de la mano ---
+                drawingContext.save();
+                drawingContext.shadowBlur = 10;
+                drawingContext.shadowColor = 'rgba(180,180,180,0.6)';
+                stroke(255);
+                strokeWeight(3);
+                noFill();
+                const connections = [
+                    [0, 1], [1, 2], [2, 3], [3, 4],     // Pulgar
+                    [0, 5], [5, 6], [6, 7], [7, 8],     // Índice
+                    [5, 9], [9, 10], [10, 11], [11, 12], // Medio
+                    [9, 13], [13, 14], [14, 15], [15, 16], // Anular
+                    [13, 17], [17, 18], [18, 19], [19, 20], // Meñique
+                    [0, 17] // Base de la palma
+                ];
+                for (const [i, j] of connections) {
+                    if (hand[i] && hand[j]) {
+                        line(hand[i].x, hand[i].y, hand[j].x, hand[j].y);
+                    }
+                }
+                drawingContext.shadowBlur = 0;
+                drawingContext.restore();
+
+                // --- Puntos de la mano ---
+                for (const point of hand) {
+                    push();
+                    for (let i = 3; i > 0; i--) {
+                        fill(220, 220, 220, 14);
+                        noStroke();
+                        ellipse(point.x, point.y, i * 12, i * 12);
+                    }
+                    fill(255);
+                    drawingContext.shadowBlur = 12;
+                    drawingContext.shadowColor = 'rgba(180,180,180,0.7)';
+                    ellipse(point.x, point.y, 8, 8);
+                    drawingContext.shadowBlur = 0;
+                    pop();
+                }
+            }
+            pop();
+        }
+
+        function draw() {
+            // --- Colisiones de la mano con la rejilla de fondo ---
+            checkHandBackgroundGridCollisions();
+            // CORRECCIÓN: Tu función de fondo ha sido restaurada.
+            drawBackground_p5();
+            time++;
+
+            push();
+            translate(width, 0);
+            scale(-1, 1);
+
+            // image(video, 0, 0, width, height); 
+
+            grids.forEach(grid => {
+                grid.y += grid.speed;
+                grid.rotation += grid.rotationSpeed;
+                if (grid.y > height + 100) {
+                    grid.y = -100 - random(200);
+                    grid.x = random(width);
+                }
+                drawGrid(grid);
+            });
+
+            updateAndSmoothBodyPoints();
+            updateVelocities();
+            checkCollisions();
+
+            drawGlowEffects_p5();
+            drawParticles_p5();
+            drawHands();
+            drawBodyPoints_p5();
+            drawBodyContour_p5();
+
+            // Actualizar y dibujar caracteres ASCII
+            updateAndDrawASCIIChars();
+            // Comprobar colisiones entre el cuerpo y los caracteres ASCII
+            checkBodyASCIICollisions();
+            // Actualizar y dibujar puntos de la rejilla de fondo interactiva
+            updateAndDrawBackgroundGridPoints();
+            // Comprobar colisiones con los puntos de la rejilla de fondo
+            checkBodyBackgroundGridCollisions();
+
+            pop();
+
+            document.getElementById('points').textContent = bodyPoints.length;
+        }
+
+        function updateAndSmoothBodyPoints() {
+            const detectedParts = new Set();
+
+            if (currentPoses.length > 0) {
+                const pose = currentPoses[0].pose;
+                const validKeypoints = pose.keypoints.filter(kp => kp.score > 0.2);
+
+                for (const kp of validKeypoints) {
+                    detectedParts.add(kp.part);
+
+                    if (smoothedKeypoints[kp.part]) {
+                        let smoothedPoint = smoothedKeypoints[kp.part];
+                        smoothedPoint.position.x = lerp(smoothedPoint.position.x, kp.position.x, smoothingFactor);
+                        smoothedPoint.position.y = lerp(smoothedPoint.position.y, kp.position.y, smoothingFactor);
+                        smoothedPoint.score = kp.score;
+                    } else {
+                        smoothedKeypoints[kp.part] = {
+                            position: { x: kp.position.x, y: kp.position.y },
+                            score: kp.score,
+                            part: kp.part
+                        };
+                    }
+                }
+            }
+
+            for (const partName in smoothedKeypoints) {
+                if (!detectedParts.has(partName)) {
+                    delete smoothedKeypoints[partName];
+                }
+            }
+
+            bodyPoints = Object.values(smoothedKeypoints).map(kp => ({
+                x: kp.position.x,
+                y: kp.position.y,
+                score: kp.score,
+                part: kp.part
+            }));
+        }
+
+        function setupAudioBtn() {
+            // --- INICIALIZACIÓN DE SINTETIZADORES DARK AMBIENT/ARCADE ---
+            fxReverb = new Tone.Reverb({ decay: 7, wet: 0.6 });
+            fxDelay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.45, wet: 0.3 });
+            fxBitCrusher = new Tone.BitCrusher(4);
+            darkAmbientVolume = new Tone.Volume(-10).toDestination();
+            
+            // PAD: Sine/triangle, envolvente lenta, filtrado oscuro
+            padSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 3, decay: 2, sustain: 0.6, release: 6 }
+            }).chain(
+                new Tone.Filter(600, "lowpass"),
+                fxReverb,
+                darkAmbientVolume
+            );
+
+            // ARPEGIADOR: Pulse (PWM), envolvente rápida, bitcrush
+            arpSynth = new Tone.Synth({
+                oscillator: { type: "pulse", width: 0.2 },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.5 }
+            }).chain(
+                fxBitCrusher,
+                fxDelay,
+                darkAmbientVolume
+            );
+
+            // NOISE: Ruido rosa filtrado, envolvente suave, para texturas
+            noiseSynth = new Tone.NoiseSynth({
+                noise: { type: "pink" },
+                envelope: { attack: 2, decay: 4, sustain: 0.2, release: 8 }
+            }).chain(
+                new Tone.Filter(400, "lowpass"),
+                fxReverb,
+                darkAmbientVolume
+            );
+
+            // SINTETIZADOR PRINCIPAL: Sine + Triangle + PWM, para eventos
+            synth = new Tone.MonoSynth({
+                oscillator: { type: "fatsine" },
+                envelope: { attack: 0.04, decay: 0.3, sustain: 0.2, release: 1.8 },
+                filter: { Q: 2, type: "lowpass", rolloff: -24 },
+                filterEnvelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 1.2, baseFrequency: 400, octaves: 2.5 }
+            }).chain(
+                fxReverb,
+                fxDelay,
+                darkAmbientVolume
+            );
+
+            // Botón de audio
+
+            audioBtn = document.getElementById('audioBtn');
+            if (!audioBtn) return;
+
+            audioBtn.addEventListener('click', async () => {
+                audioBtn.disabled = true;
+                audioBtn.textContent = 'Iniciando...';
+                document.getElementById('status').textContent = 'INICIANDO AUDIO...';
+
+                try {
+                    await Tone.start();
+                    console.log('Contexto de Audio iniciado por el usuario.');
+
+                    if (!synth) {
+                        synth = new Tone.PolySynth(Tone.Synth, {
+                            oscillator: { type: "sine" },
+                            envelope: { attack: 0.1, decay: 0.3, sustain: 0.5, release: 1.0 }
+                        }).toDestination();
+                        const reverb = new Tone.Reverb({ decay: 4, wet: 0.3 }).toDestination();
+                        const delay = new Tone.FeedbackDelay("8n", 0.2).toDestination();
+                        synth.connect(reverb);
+                        synth.connect(delay);
+                    }
+                    isAudioStarted = true;
+                    console.log("Sistema de audio inicializado correctamente.");
+
+                    document.getElementById('status').textContent = 'AUDIO ACTIVO';
+                    audioBtn.style.display = 'none';
+                } catch (err) {
+                    console.error('Fallo total al iniciar el audio:', err);
+                    document.getElementById('status').textContent = 'ERROR DE AUDIO';
+                    audioBtn.textContent = '🔊 Reintentar Audio';
+                    audioBtn.disabled = false;
+                }
+            });
+        }
+
+        // ===============================================================
+        // FUNCIONES PARA LA REJILLA DE FONDO INTERACTIVA
+        // ===============================================================
+
+        class BackgroundGridPoint {
+            constructor(x, y, originalColor) {
+                this.originalX = x;
+                this.originalY = y;
+                this.x = x;
+                this.y = y;
+                this.color = originalColor;
+                this.isAffected = false;
+                this.effectTimer = 0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.basePulseSize = 4;
+                this.pulseMagnitude = 2;
+                // Usar una componente única para la fase del pulso para evitar patrones repetitivos si x o y son 0
+                this.pulsePhaseOffset = (this.originalX * 0.01 + this.originalY * 0.005);
+            }
+
+            update() {
+                if (this.isAffected) {
+                    this.effectTimer += 0.1;
+                    this.offsetX = sin(this.effectTimer * 2.5) * 4; // Movimiento sutil
+                    this.offsetY = cos(this.effectTimer * 3.0) * 3;
+                    if (this.effectTimer > PI * 0.75) { // Duración más corta del efecto
+                        this.isAffected = false;
+                        this.effectTimer = 0;
+                    }
+                } else {
+                    this.offsetX = lerp(this.offsetX, 0, 0.1);
+                    this.offsetY = lerp(this.offsetY, 0, 0.1);
+                }
+                this.x = this.originalX + this.offsetX;
+                this.y = this.originalY + this.offsetY;
+                this.currentPulseSize = this.basePulseSize + Math.sin(millis() / 500.0 + this.pulsePhaseOffset) * this.pulseMagnitude;
+            }
+
+            display() {
+                fill(this.color);
+                noStroke();
+                ellipse(this.x, this.y, this.currentPulseSize * 2, this.currentPulseSize * 2);
+
+                stroke(color(255, 255, 255, 70)); // Contorno más sutil
+                strokeWeight(0.5);
+                noFill();
+                ellipse(this.x, this.y, this.currentPulseSize * 2, this.currentPulseSize * 2);
+            }
+
+            triggerEffect() {
+                this.isAffected = true;
+                this.effectTimer = 0;
+            }
+        }
+
+        function setupStaticBackgroundGrid() {
+            const gridSpacing = 50;
+            backgroundGridPoints = []; // Limpiar puntos existentes si se llama múltiples veces (ej. en resize)
+
+            const cols = Math.floor(width / gridSpacing);
+            const rows = Math.floor(height / gridSpacing);
+
+            const gridWidth = cols * gridSpacing;
+            const gridHeight = rows * gridSpacing;
+
+            const offsetX = (width - gridWidth + gridSpacing) / 2;
+            const offsetY = (height - gridHeight + gridSpacing) / 2;
+
+            // Guardar métricas para que drawBackground_p5 pueda dibujar las lianas verticales
+            staticGridMetrics = {
+                gridSpacing: gridSpacing,
+                cols: cols,
+                offsetX: offsetX
+            };
+
+            // Inicializar el estado de las lianas
+            lianaStates = [];
+            for (let c = 0; c < cols; c++) {
+                lianaStates.push({
+                    waves: [] // Cada onda: { y, amplitude, phase }
+                });
+            }
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const x = offsetX + c * gridSpacing;
+                    const y = offsetY + r * gridSpacing;
+                    
+                    let dotColor;
+                    // Alternar colores entre blanco y gris claro para un efecto sutil
+                    if ((c + r) % 2 === 0) {
+                        dotColor = color(255, 255, 255, 180); // Blanco translúcido
+                    } else {
+                        dotColor = color(200, 200, 200, 150); // Gris claro translúcido
+                    }
+                    backgroundGridPoints.push(new BackgroundGridPoint(x, y, dotColor));
+                }
+            }
+        }
+
+        function drawBackground_p5() { // Vibración localizada por onda
+            background(0);
+            if (Object.keys(staticGridMetrics).length === 0 || staticGridMetrics.cols === undefined || staticGridMetrics.cols <= 0) {
+                return;
+            }
+            const { cols, offsetX, gridSpacing } = staticGridMetrics;
+            stroke(255, 255, 255, 80);
+            strokeWeight(1.5);
+            noFill();
+
+            for (let c = 0; c < cols; c++) {
+                const xLiana = offsetX + c * gridSpacing;
+                let waves = lianaStates[c] ? lianaStates[c].waves : [];
+                // Actualizar y decaer las ondas
+                for (let w = waves.length - 1; w >= 0; w--) {
+                    waves[w].amplitude *= 0.92; // Decaimiento
+                    waves[w].phase += 0.25;
+                    if (waves[w].amplitude < 0.5) waves.splice(w, 1); // Eliminar ondas débiles
+                }
+                beginShape();
+                curveVertex(xLiana, -20);
+                curveVertex(xLiana, 0);
+                const numSegments = 15;
+                for (let i = 1; i < numSegments; i++) {
+                    let ySegment = (height / numSegments) * i;
+                    let xOffset = 0;
+                    // Sumar la influencia de todas las ondas activas cercanas
+                    for (const wave of waves) {
+                        // La influencia decae con la distancia vertical
+                        let distY = Math.abs(ySegment - wave.y);
+                        let falloff = Math.exp(-Math.pow(distY / 60, 2)); // Gaussiana
+                        xOffset += Math.sin(wave.phase + i * 0.7) * wave.amplitude * falloff;
+                    }
+                    curveVertex(xLiana + xOffset, ySegment);
+                }
+                curveVertex(xLiana, height);
+                curveVertex(xLiana, height + 20);
+                endShape();
+            }
+        }
+
+        function updateAndDrawBackgroundGridPoints() {
+            for (let point of backgroundGridPoints) {
+                point.update();
+                point.display();
+            }
+        }
+
+        function checkBodyBackgroundGridCollisions() {
+            if (!bodyPoints || bodyPoints.length === 0) return;
+            const collisionRadius = 25;
+
+            // --- Colisión con lianas ---
+            if (staticGridMetrics && lianaStates && lianaStates.length > 0) {
+                const { cols, offsetX, gridSpacing } = staticGridMetrics;
+                for (let c = 0; c < cols; c++) {
+                    const xLiana = offsetX + c * gridSpacing;
+                    for (let bp of bodyPoints) {
+                        let d = Math.abs(bp.x - xLiana);
+                        if (d < collisionRadius) {
+                            // Intensidad: más cerca = más fuerte
+                            let intensity = (collisionRadius - d);
+                            // Agregar una onda localizada en la posición Y de la colisión
+                            lianaStates[c].waves.push({
+                                y: bp.y,
+                                amplitude: intensity * 0.6,
+                                phase: random(0, Math.PI * 2)
+                            });
+                        }
+                    }
+                }
+            }
+
+            for (let gridPoint of backgroundGridPoints) {
+                let collided = false;
+                for (let bodyPt of bodyPoints) {
+                    let d = dist(bodyPt.x, bodyPt.y, gridPoint.originalX, gridPoint.originalY);
+                    if (d < collisionRadius) {
+                        collided = true;
+                        break;
+                    }
+                }
+                if (collided) {
+                    gridPoint.triggerEffect();
+                }
+            }
+        }
+
+        // --- NUEVO: Colisiones de la mano con la rejilla de fondo ---
+        // Buffer para evitar saturación de interacciones
+        let handInteractionBuffer = {};
+        function checkHandBackgroundGridCollisions() {
+            // --- Colisión con lianas por dedos ---
+            if (staticGridMetrics && lianaStates && lianaStates.length > 0 && handLandmarks && handLandmarks.length > 0) {
+                const { cols, offsetX, gridSpacing } = staticGridMetrics;
+                const fingerTipsIndices = [4, 8, 12, 16, 20];
+                const collisionRadius = 20;
+                for (const hand of handLandmarks) {
+                    for (const tipIndex of fingerTipsIndices) {
+                        if (hand.length > tipIndex) {
+                            const landmark = hand[tipIndex];
+                            for (let c = 0; c < cols; c++) {
+                                const xLiana = offsetX + c * gridSpacing;
+                                let d = Math.abs(landmark.x - xLiana);
+                                if (d < collisionRadius) {
+                                    let intensity = (collisionRadius - d);
+                                    // Agregar una onda localizada en la posición Y de la colisión
+                                    lianaStates[c].waves.push({
+                                        y: landmark.y,
+                                        amplitude: intensity * 0.8,
+                                        phase: random(0, Math.PI * 2)
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    // --- AUDIORREACTIVO: Disparar eventos sonoros al interactuar con rejillas ---
+    let anyTriggered = false;
+    // Índices de los tips de los dedos y la palma según MediaPipe
+    const fingerTipIndices = [0, 4, 8, 12, 16, 20]; // 0 = palma (wrist), 4,8,12,16,20 = tips
+    const asciiOptions = ['M', 'M', '➅']; // Puedes añadir más variantes aquí
+    const asciiSize = 11; // Tamaño pequeño y uniforme
+
+    if (!handLandmarks || handLandmarks.length === 0) return;
+    const collisionRadius = 10;
+    const now = millis();
+    for (let gridPoint of backgroundGridPoints) {
+        let collided = false;
+        let triggeringPoint = null;
+        let triggeringIndex = 0;
+        let asciiTriggered = false;
+        for (const hand of handLandmarks) {
+            for (let idx = 0; idx < hand.length; idx++) {
+                const pt = hand[idx];
+                let d = dist(pt.x, pt.y, gridPoint.originalX, gridPoint.originalY);
+                if (d < collisionRadius && fingerTipIndices.includes(idx)) {
+                    collided = true;
+                    triggeringPoint = pt;
+                    triggeringIndex = idx;
+                    asciiTriggered = true;
+                    break;
+                }
+            }
+            if (collided) break;
+        }
+        if (collided) {
+            // Buffer: solo permite una interacción cada 120ms por grid
+            if (!handInteractionBuffer[gridPoint.originalX+','+gridPoint.originalY] || now - handInteractionBuffer[gridPoint.originalX+','+gridPoint.originalY] > 120) {
+                gridPoint.triggerEffect();
+                // Dispara partículas y sonido igual que el cuerpo
+                triggerInteraction(triggeringPoint, gridPoint, triggeringIndex);
+                handInteractionBuffer[gridPoint.originalX+','+gridPoint.originalY] = now;
+                // --- NUEVO: Crear ASCIIChar en el tip del dedo o palma ---
+                if (asciiTriggered && triggeringPoint) {
+                    let asciiChar = new ASCIIChar(triggeringPoint.x, triggeringPoint.y, random(asciiOptions));
+                    asciiChar.baseSize = asciiSize;
+                    asciiChar.triggerEffect();
+                    asciiChars.push(asciiChar);
+                }
+            }
+        }
+    }
+}
+
+        function updateVelocities() {
+            if (previousPoints.length === bodyPoints.length && bodyPoints.length > 0) {
+                const currentPointsMap = new Map(bodyPoints.map(p => [p.part, p]));
+                velocities = previousPoints.map(prevPoint => {
+                    const currentPoint = currentPointsMap.get(prevPoint.part);
+                    if (currentPoint) {
+                        return {
+                            x: currentPoint.x - prevPoint.x,
+                            y: currentPoint.y - prevPoint.y,
+                            speed: dist(currentPoint.x, currentPoint.y, prevPoint.x, prevPoint.y)
+                        };
+                    }
+                    return { x: 0, y: 0, speed: 0 };
+                });
+            } else {
+                velocities = bodyPoints.map(() => ({ x: 0, y: 0, speed: 0 }));
+            }
+            previousPoints = bodyPoints.map(p => ({ ...p }));
+        }
+
+        function checkCollisions() { bodyPoints.forEach((point, pointIndex) => { grids.forEach((grid) => { if (dist(point.x, point.y, grid.x, grid.y) < grid.size / 2 + 30) { triggerInteraction(point, grid, pointIndex); } }); }); }
+        // Buffer global para evitar triggers simultáneos en el mismo instante
+let lastSynthTriggerTime = 0;
+function triggerInteraction(point, grid, pointIndex) {
+    for (let i = 0; i < 1; i++) {
+        particles.push({
+            x: point.x,
+            y: point.y,
+            vx: (random() - 0.5) * 10,
+            vy: (random() - 0.5) * 10,
+            life: 1.0,
+            decay: 0.02,
+            color: grid.color,
+            size: 2 + random(4)
+        });
+    }
+    glowEffects.push({
+        x: point.x,
+        y: point.y,
+        intensity: 1.0,
+        decay: 0.05,
+        color: grid.color,
+        size: 5 + random(10)
+    });
+    if (isAudioStarted && synth && velocities[pointIndex]) {
+        const notes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+        const note = notes[pointIndex % notes.length];
+        const velocity = velocities[pointIndex]?.speed || 0;
+        const freqMod = map(velocity, 0, 30, 0, 800, true);
+        const volume = map(velocity, 0, 30, 0.1, 0.7, true);
+        if (velocity > 1.5) {
+            synth.set({
+                oscillator: { type: 'sine', modulationFrequency: freqMod },
+                envelope: { attack: 0.01 + 0.1 / (1 + velocity), release: 0.1 + 0.5 / (1 + velocity) }
+            });
+            // --- CORRECCIÓN: asegurar que el tiempo sea estrictamente creciente ---
+            let now = Tone.now();
+            if (now <= lastSynthTriggerTime) {
+                now = lastSynthTriggerTime + 0.01; // Añade un pequeño offset si es igual o menor
+            }
+            lastSynthTriggerTime = now;
+            synth.triggerAttackRelease(note, '8n', now, volume);
+        }
+    }
+}
+        function drawBodyContour_p5() { if (bodyPoints.length < 3) return; const keypointsMap = new Map(bodyPoints.map(p => [p.part, { position: { x: p.x, y: p.y }, score: p.score }])); const keypoints = Array(17).fill(null); const partNames = ["nose", "leftEye", "rightEye", "leftEar", "rightEar", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist", "leftHip", "rightHip", "leftKnee", "rightKnee", "leftAnkle", "rightAnkle"]; partNames.forEach((partName, i) => { if (keypointsMap.has(partName)) { keypoints[i] = { ...keypointsMap.get(partName), part: partName }; } }); const bodyParts = { head: [0, 1, 2, 3, 4], torso: [5, 6, 12, 11], leftArm: [5, 7, 9], rightArm: [6, 8, 10], leftLeg: [11, 13, 15], rightLeg: [12, 14, 16] }; const p5Time = millis() / 1000.0; push(); drawingContext.shadowBlur = 10; const mainPointsIndices = [5, 6, 12, 11, 5]; drawConnectedPoints_p5(keypoints, mainPointsIndices, color('white'), 3); Object.entries(bodyParts).forEach(([part, indices], i) => { const hue = (p5Time * 40 + i * 60) % 360; if (part !== 'torso') { drawConnectedPoints_p5(keypoints, indices, color(`hsla(${hue}, 70%, 50%, 0.6)`), 2); } }); drawingContext.shadowBlur = 0; pop(); }
+        function drawConnectedPoints_p5(allKeypoints, pointIndices, strokeClr, sw = 2) { push(); stroke(strokeClr); strokeWeight(sw); noFill(); beginShape(); for (const index of pointIndices) { const kp = allKeypoints[index]; if (kp && kp.score > 0.5) { vertex(kp.position.x, kp.position.y); } } endShape(); pop(); }
+        function createGrids() { for (let i = 0; i < 15; i++) { grids.push({ x: random(width), y: -100 - random(500), speed: 1 + random(2), size: 5 + random(66), rotation: random(TWO_PI), rotationSpeed: (random() - 0.5) * 0.02, opacity: 0.3 + random() * 0.4, color: getRandomColor_p5() }); } }
+        function getRandomColor_p5() {
+            const p5colors = [
+                color(245, 248, 250, 220),  // Azul muy claro casi blanco
+                color(220, 230, 240, 200),  // Gris azulado claro
+                color(240, 245, 250, 200),  // Blanco azulado
+                color(230, 235, 240, 180),  // Gris perla
+                color(255, 255, 255, 200),  // Blanco puro
+                color(245, 245, 245, 220),  // Blanco fantasía
+                color(220, 225, 230, 200),  // Gris plateado claro
+                color(235, 240, 245, 180),  // Gris perla azulado
+                color(250, 252, 255, 200)   // Blanco nieve
+            ];
+            return random(p5colors);
+        }
+        function drawGrid(grid) { push(); translate(grid.x, grid.y); rotate(grid.rotation); let c = grid.color; stroke(red(c), green(c), blue(c), alpha(c) * grid.opacity * 255); strokeWeight(2); noFill(); for (let i = 1; i <= 5; i++) { ellipse(0, 0, (grid.size / 2.5) * i, (grid.size / 2.5) * i); } pop(); }
+       
+        function drawBodyPoints_p5() {
+    bodyPoints.forEach((point, index) => {
+        push();
+        // Resplandor blanco/gris, menos elipses para optimizar
+        for (let i = 3; i > 0; i--) {
+            fill(2, 220, 220, 14);
+            noStroke();
+            ellipse(point.x, point.y, i * 18, i * 18);
+        }
+        fill(255);
+        drawingContext.shadowBlur = 14;
+        drawingContext.shadowColor = 'rgba(180,180,180,0.8)';
+        ellipse(point.x, point.y, 9, 9);
+        drawingContext.shadowBlur = 0;
+        pop();
+    });
+}
+
+        function drawParticles_p5() { particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.life -= p.decay; p.vx *= 0.98; p.vy *= 0.98; if (p.life > 0) { push(); let baseColor = p.color; fill(red(baseColor), green(baseColor), blue(baseColor), p.life * 255); noStroke(); drawingContext.shadowBlur = 10; drawingContext.shadowColor = `rgb(${red(baseColor)},${green(baseColor)},${blue(baseColor)})`; ellipse(p.x, p.y, p.size * 2, p.size * 2); drawingContext.shadowBlur = 0; pop(); return true; } return false; }); }
+        
+        function drawGlowEffects_p5() { glowEffects = glowEffects.filter(effect => { effect.intensity -= effect.decay; if (effect.intensity > 0) { push(); let baseColor = effect.color; for (let i = 0; i < 5; i++) { let currentSize = effect.size * (1 - i * 1.0); let currentAlpha = effect.intensity * (200 - i * 40); if (currentAlpha < 0) currentAlpha = 0; fill(red(baseColor), green(baseColor), blue(baseColor), currentAlpha); noStroke(); ellipse(effect.x, effect.y, currentSize * 2, currentSize * 2); } pop(); return true; } return false; }); }
+       
+        function windowResIZED() { // Corrección del nombre de la función si estaba en mayúsculas
+            resizeCanvas(windowWidth, windowHeight);
+            setupStaticBackgroundGrid(); // Regenerar puntos de la rejilla de fondo
+            // Si createASCIIGrid también depende del tamaño, llamarlo aquí también
+            // createASCIIGrid(); 
+        }
+
+        // Asegurarse que el nombre de la función es correcto si p5.js lo espera en minúsculas
+        if (typeof windowResized === 'undefined' && typeof windowResIZED !== 'undefined') {
+            window.windowResized = window.windowResIZED;
+        }
+
+        // ===============================================================
+        // CLASE ASCIIChar Y FUNCIONES RELACIONADAS (MM6)
+        // ===============================================================
+
+        class ASCIIChar {
+            constructor(x, y, character) {
+                this.originalX = x;
+                this.originalY = y;
+                this.x = x;
+                this.y = y;
+                this.character = character;
+                this.scale = 1.0;
+                this.alpha = 0; // Inicialmente invisible
+                this.isVisible = false; // Inicialmente no visible
+                this.pulsePhase = random(TWO_PI);
+                this.isAffected = false;
+                this.effectTimer = 0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.baseSize = 13; // Tamaño base del texto
+            }
+
+            update() {
+                if (this.isAffected) {
+                    this.effectTimer += 0.1;
+                    this.offsetX = sin(this.effectTimer * 1.5) * 8;
+                    this.offsetY = cos(this.effectTimer * 2.0) * 6;
+                    this.alpha = 255; // Max alpha during effect
+                    this.scale = 1.3 + sin(this.effectTimer * 2.5) * 0.2;
+                    this.isVisible = true; // Definitely visible during effect
+
+                    if (this.effectTimer > PI * 1.5) { // Effect ends
+                        this.isAffected = false;
+                        this.effectTimer = 0;
+                        // Alpha will start fading in the 'else' block next frame
+                    }
+                } else {
+                    // Not affected, or effect just ended: fade out and reset
+                    this.offsetX = lerp(this.offsetX, 0, 0.1);
+                    this.offsetY = lerp(this.offsetY, 0, 0.1);
+                    this.alpha = lerp(this.alpha, 0, 0.05); // Fade alpha to 0
+
+                    if (this.alpha < 1) {
+                        this.alpha = 0;
+                        this.isVisible = false; // Mark as not visible once fully faded
+                        this.scale = 1.0; // Reset scale
+                    } else {
+                        this.isVisible = true; // Still visible while fading
+                        // Apply gentle pulse while fading out
+                        let pulse = sin(millis() * 0.002 + this.pulsePhase) * 0.05;
+                        this.scale = 1.0 + pulse;
+                    }
+                }
+
+                this.x = this.originalX + this.offsetX;
+                this.y = this.originalY + this.offsetY;
+            }
+
+            display() {
+                if (this.alpha < 1) return; // No dibujar si es completamente transparente
+                push();
+                // Aplicar la transformación de espejo para que los caracteres se dibujen correctamente
+                // ya que el canvas principal tiene scale(-1, 1) dentro del push/pop en draw()
+                // No es necesario aquí si se llama dentro del mismo push/pop que invierte el canvas.
+                // Si se llamara fuera, necesitaríamos: translate(this.x, this.y); scale(-1,1) de nuevo.
+                translate(this.x, this.y);
+                // Aplicar la escala de animación del carácter
+                scale(this.scale, this.scale);
+                // Contrarrestar el volteo horizontal global solo para este texto
+                scale(-1, 1);
+                textAlign(CENTER, CENTER);
+                textFont('Fira Mono', this.baseSize);
+
+                // // Resplandor del carácter (MUY sutil)
+                // for (let i = 1; i > 0; i--) {
+                //     fill(0, 200, 200, this.alpha / 10); // Mucho menos opacidad
+                //     text(this.character, 0, 0);
+                // }
+
+                // Carácter principal
+                fill(200, 255, 255, this.alpha); // Color principal del texto
+                text(this.character, 0, 0);
+                pop();
+            }
+
+            triggerEffect() {
+                this.isAffected = true; // Mark as affected
+                this.effectTimer = 0;   // Reset timer, so effect plays for full duration from this trigger
+                this.isVisible = true;  // Ensure it's marked as visible
+                this.alpha = 255;       // Set to full alpha for the effect
+            }
+        }
+
+        function createASCIIGrid() {
+            const chars = ["M", "M", "➅"];
+            const spacingX = 75; // Espaciado horizontal entre caracteres
+            const spacingY = 75; // Espaciado vertical entre caracteres
+            const startX = spacingX / 4;
+            const startY = spacingY / 4;
+            let charIndex = 0;
+
+            for (let y = startY; y < height; y += spacingY) {
+                for (let x = startX; x < width; x += spacingX) {
+                    // Seleccionar M, M, 6 en secuencia para una distribución más predecible
+                    let selectedChar = chars[charIndex % chars.length];
+                    asciiChars.push(new ASCIIChar(x, y, selectedChar));
+                    charIndex++;
+                }
+            }
+        }
+
+        function updateAndDrawASCIIChars() {
+            for (let ascii of asciiChars) {
+                ascii.update();
+                ascii.display();
+            }
+        }
+
+        function checkBodyASCIICollisions() {
+            if (!bodyPoints || bodyPoints.length === 0) return;
+
+            const collisionRadius = 15;// Radio de detección de colisión más grande
+
+            for (let ascii of asciiChars) {
+                let collided = false;
+                for (let bodyPt of bodyPoints) {
+                    // Los bodyPoints ya están en coordenadas del canvas (después del espejo)
+                    // Pero los ascii.x, ascii.y son coordenadas originales.
+                    // La transformación de espejo se aplica en draw() ANTES de dibujar todo.
+                    // Por lo tanto, las coordenadas de bodyPt y ascii.x/y están en el mismo sistema de referencia
+                    // (antes del espejo global, o más bien, bodyPt ya está espejado si se obtiene después del scale(-1,1))
+
+                    // Corrección: bodyPoints son obtenidos de PoseNet y luego espejados por el push/matrix en draw().
+                    // Los ASCIIChars se crean con coordenadas directas del canvas. 
+                    // La comparación de distancia debe hacerse en el mismo sistema de coordenadas.
+                    // Dado que todo se dibuja dentro del push/pop que invierte el eje X,
+                    // las coordenadas de bodyPoints ya están transformadas (espejadas).
+                    // Las coordenadas de ascii.x y ascii.y son las originales.
+                    // Para comparar, necesitamos o des-espejar bodyPoints, o espejar ascii.x para la comparación.
+                    // La forma más sencilla es comparar con ascii.originalX, asumiendo que la colisión se evalúa
+                    // antes de que el efecto de `offsetX` desplace mucho el carácter.
+                    // O, si `bodyPoints` ya están en el sistema de coordenadas espejado:
+                    // let mirroredAsciiX = width - ascii.x; // Si ascii.x fuera la coordenada original sin espejar
+                    // Pero como `ascii.x` se usa para `translate(ascii.x, ascii.y)` DENTRO del `push/pop` espejado,
+                    // `ascii.x` y `bodyPt.x` ya están en el mismo sistema de coordenadas (espejado).
+
+                    let d = dist(bodyPt.x, bodyPt.y, ascii.x, ascii.y);
+                    if (d < collisionRadius) {
+                        collided = true;
+                        break;
+                    }
+                }
+                if (collided) {
+                    ascii.triggerEffect();
+                }
+            }
+        }
+
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+

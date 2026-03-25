@@ -43,10 +43,11 @@
         #videoWrap {
             display: none;
             position: relative;
-            width: 320px;
-            height: 240px;
-            border: 1px solid #ddd;
-            background: #f5f5f5;
+            width: 640px;
+            height: 480px;
+            border: 2px solid #00ff88;
+            background: #000;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
         }
 
         #videoEl {
@@ -54,6 +55,7 @@
             height: 100%;
             object-fit: cover;
             transform: scaleX(-1);
+            opacity: 0.1;
         }
 
         #canvasEl {
@@ -290,6 +292,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
+<!-- p5.js for enhanced visuals -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+
 <script>
 // ─── ERC-8004 hash chain (localStorage) ───────────────────────────────────
 function sha256(str) {
@@ -344,6 +349,164 @@ async function buildERC8004Entry(sessionId, dominant, confidence, labanScores, n
 
 // ─── Laban classifier ─────────────────────────────────────────────────────
 const LABAN_MOVEMENTS = ['golpear','flotar','deslizar','cortar','presionar','retorcer','sacudir','tocar'];
+
+// ─── Visual Effects (Enhanced from Kori) ──────────────────────────────────
+let particles = [];
+let glowEffects = [];
+let grids = [];
+let bodyPoints = [];
+let currentLandmarks = [];
+let bodyContourPoints = [];
+
+class GlowEffect {
+    constructor(x, y, color = '#00ff00') {
+        this.x = x;
+        this.y = y;
+        this.intensity = 1.0;
+        this.decay = 0.05;
+        this.color = color;
+        this.size = 8;
+    }
+    
+    update() {
+        this.intensity -= this.decay;
+        return this.intensity > 0;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        for (let i = 0; i < 4; i++) {
+            const size = this.size * (1 - i * 0.25);
+            const alpha = this.intensity * (100 - i * 25);
+            ctx.fillStyle = `rgba(0,255,0,${alpha / 255})`;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 10;
+        this.vy = (Math.random() - 0.5) * 10;
+        this.life = 1.0;
+        this.decay = 0.02;
+        this.color = color;
+        this.size = 2 + Math.random() * 4;
+    }
+    
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.98;
+        this.vy *= 0.98;
+        this.life -= this.decay;
+        return this.life > 0;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.fillStyle = `rgba(100,200,255,${this.life})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+class FallingGrid {
+    constructor() {
+        this.x = Math.random() * 640;
+        this.y = -100 - Math.random() * 200;
+        this.speed = 1 + Math.random() * 2;
+        this.size = 20 + Math.random() * 50;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+    }
+    
+    update() {
+        this.y += this.speed;
+        this.rotation += this.rotationSpeed;
+        return this.y < 480 + 100;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.strokeStyle = 'rgba(100,200,255,0.3)';
+        ctx.lineWidth = 2;
+        for (let i = 1; i <= 5; i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, (this.size / 2.5) * i, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
+
+function spawnParticles(x, y, count = 5) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, `hsl(${Math.random() * 60 + 180}, 80%, 50%)`));
+    }
+}
+
+function spawnGlow(x, y) {
+    glowEffects.push(new GlowEffect(x, y, '#00ff88'));
+}
+
+function drawBodyContour(ctx, landmarks) {
+    if (!landmarks || landmarks.length === 0) return;
+    
+    // Define skeleton connections
+    const connections = [
+        [0, 1], [0, 4], [1, 2], [2, 3], [1, 5], [5, 6], [6, 7],
+        [0, 9], [9, 10], [10, 11], [0, 13], [13, 14], [14, 15],
+        [5, 9], [12, 11], [8, 14], [7, 15]
+    ];
+    
+    ctx.save();
+    ctx.strokeStyle = 'rgba(100,200,255,0.8)';
+    ctx.lineWidth = 2;
+    
+    for (const [a, b] of connections) {
+        if (landmarks[a] && landmarks[b]) {
+            ctx.beginPath();
+            ctx.moveTo(landmarks[a].x, landmarks[a].y);
+            ctx.lineTo(landmarks[b].x, landmarks[b].y);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+
+function drawBodyPoints(ctx, landmarks) {
+    if (!landmarks) return;
+    ctx.save();
+    for (const lm of landmarks) {
+        if (!lm) continue;
+        // Glow circles
+        for (let i = 3; i > 0; i--) {
+            ctx.fillStyle = `rgba(100,200,255,${14 / i})`;
+            ctx.beginPath();
+            ctx.arc(lm.x, lm.y, i * 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Center point
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(100,200,255,0.6)';
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(lm.x, lm.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+}
 
 function classifyLaban(landmarks) {
     if (!landmarks || landmarks.length < 33) {
@@ -436,6 +599,10 @@ async function startCapture() {
     capturing = true;
     logs = [];
     frameBuffer = [];
+    particles = [];
+    glowEffects = [];
+    grids = [];
+    currentLandmarks = [];
     document.getElementById('result').classList.remove('show');
     document.getElementById('status').textContent = '● Starting...';
 
@@ -530,12 +697,61 @@ function onPoseResults(results) {
     if (!capturing || !results.poseLandmarks) return;
     frameBuffer.push([...results.poseLandmarks]);
 
-    // draw skeleton
+    // Store landmarks for effect generation
+    currentLandmarks = results.poseLandmarks;
+
+    // Canvas drawing
     const canvasEl = document.getElementById('canvasEl');
     const ctx = canvasEl.getContext('2d');
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#000', lineWidth: 2 });
-    drawLandmarks(ctx, results.poseLandmarks, { color: '#000', lineWidth: 1, radius: 3 });
+
+    // ─── Visual Effects Enhanced ───────────────────────────────────────
+    
+    // Update & draw falling grids
+    grids = grids.filter(g => g.update());
+    if (Math.random() < 0.15) {
+        grids.push(new FallingGrid());
+    }
+    grids.forEach(g => g.draw(ctx));
+
+    // Update & draw particles
+    particles = particles.filter(p => p.update());
+    particles.forEach(p => p.draw(ctx));
+
+    // Update & draw glow effects
+    glowEffects = glowEffects.filter(g => g.update());
+    glowEffects.forEach(g => g.draw(ctx));
+
+    // ─── Skeleton with Enhanced Visuals ──────────────────────────────
+    
+    // Draw body contour (connecting skeleton)
+    drawBodyContour(ctx, results.poseLandmarks);
+    
+    // Draw body points with glow
+    drawBodyPoints(ctx, results.poseLandmarks);
+    
+    // Draw connections (MediaPipe style but with colors)
+    ctx.strokeStyle = 'rgba(100,200,255,0.6)';
+    ctx.lineWidth = 1.5;
+    for (const [a, b] of POSE_CONNECTIONS) {
+        if (results.poseLandmarks[a] && results.poseLandmarks[b]) {
+            const lmA = results.poseLandmarks[a];
+            const lmB = results.poseLandmarks[b];
+            ctx.beginPath();
+            ctx.moveTo(lmA.x, lmA.y);
+            ctx.lineTo(lmB.x, lmB.y);
+            ctx.stroke();
+        }
+    }
+
+    // Generate particles & glow on significant movement
+    if (Math.random() < 0.3) {
+        const randomLm = results.poseLandmarks[Math.floor(Math.random() * results.poseLandmarks.length)];
+        if (randomLm) {
+            spawnParticles(randomLm.x, randomLm.y, 2);
+            if (Math.random() < 0.5) spawnGlow(randomLm.x, randomLm.y);
+        }
+    }
 }
 
 async function runDryRun(duration, btn, videoWrap, stream) {
