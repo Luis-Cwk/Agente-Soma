@@ -662,6 +662,7 @@ async function processFrames(duration, btn) {
     `;
 
     if (publishResult && publishResult.status !== 'error') {
+        console.log('✅ Publish success:', publishResult);
         if (publishResult.ipfs_gateway_url) {
             resultsHtml += `<br><strong>IPFS:</strong><br><a href="${publishResult.ipfs_gateway_url}" target="_blank" class="result-link">${publishResult.ipfs_gateway_url}</a>`;
         }
@@ -672,7 +673,10 @@ async function processFrames(duration, btn) {
             resultsHtml += `<br><br><strong>View on Sepolia:</strong><br><a href="${publishResult.tx_url}" target="_blank" class="result-link">${publishResult.tx_url}</a>`;
         }
     } else if (publishResult && publishResult.error) {
-        resultsHtml += `<br><br><em>Publish error: ${publishResult.error}</em>`;
+        console.log('❌ Publish error:', publishResult.error);
+        resultsHtml += `<br><br><em>⚠️ Publish error: ${publishResult.error}</em>`;
+    } else {
+        console.log('⚠️ No publish result or unexpected response:', publishResult);
     }
 
     document.getElementById('resultData').innerHTML = resultsHtml;
