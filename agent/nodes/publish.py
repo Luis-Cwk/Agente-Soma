@@ -321,7 +321,10 @@ def publish_node(state: AgentState) -> AgentState:
     LangGraph node: Upload to IPFS, mint NFT on Base, and optionally create auction.
     Qualifies for SuperRare bounty if AUCTION_ENABLED=true.
     """
-    print(f"[PUBLISH] Preparing NFT metadata...")
+    import sys
+    print(f"\n[PUBLISH] 🚀 ENTERING PUBLISH NODE...")
+    print(f"[PUBLISH] State keys: {list(state.keys()) if hasattr(state, 'keys') else list(state.__dict__.keys())}")
+    sys.stdout.flush()
 
     session_id = state.get("session_id", "unknown")
 
@@ -400,7 +403,7 @@ def publish_node(state: AgentState) -> AgentState:
             mint_result = {}
 
             def run_mint():
-                txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=5.0)
+                txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=3.0)
                 mint_result['tx_hash'] = txh
                 mint_result['token_id'] = tid
 

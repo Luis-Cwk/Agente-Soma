@@ -44,5 +44,5 @@ AGENT_REG_TX    = "0x76b7f88db606c6a6cba0fbd4ed7ee7f36b916587a138b9a518e368d4a66
 
 # ─── MediaPipe ────────────────────────────────────────────────
 CAMERA_INDEX    = int(os.getenv("CAMERA_INDEX", "0"))
-CAPTURE_SECONDS = int(os.getenv("CAPTURE_SECONDS", "3"))
+CAPTURE_SECONDS = int(os.getenv("CAPTURE_SECONDS", "2"))
 MIN_CONFIDENCE  = float(os.getenv("MIN_CONFIDENCE", "0.7"))
