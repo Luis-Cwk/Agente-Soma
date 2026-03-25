@@ -409,53 +409,52 @@ def publish_node(state: AgentState) -> AgentState:
             print(f"[PUBLISH]   ✓ Wallet: {wallet_address[:10]}...")
             sys.stdout.flush()
 
-            # Run mint with an extra watchdog to avoid first-run hangs
-            mint_result = {'tx_hash': None, 'token_id': None}
-
-            def run_mint():
-                try:
-                    txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=8.0)
-                    mint_result['tx_hash'] = txh
-                    mint_result['token_id'] = tid
-                except Exception as e:
-                    print(f"[PUBLISH] ERROR in mint thread: {e}")
-                    mint_result['tx_hash'] = "0x_mint_thread_error"
-
-            mint_thread = threading.Thread(target=run_mint, daemon=True)
-            mint_thread.start()
-            mint_thread.join(12)  # Wait up to 12 seconds
-
-            # Always get a tx_hash, never None
-            tx_hash = mint_result.get('tx_hash') or "0x_mint_thread_failed"
-            token_id = mint_result.get('token_id')
-
-            if mint_thread.is_alive():
-                print("[PUBLISH] ⚠️ Mint watchdog timeout — thread still running")
-                tx_hash = "0x_dry_run_watchdog"
+            # ─── Non-blocking mint: return immediately, process in background ───
+            # This prevents Vercel timeouts (60s limit)
+            tx_hash = f"0x_pending_mint_{session_id[:8]}"
             
-            print(f"[PUBLISH] ✅ NFT minted: {tx_hash[:10]}... (token_id: {token_id})")
+            def background_mint():
+                """Process mint in background without blocking response."""
+                try:
+                    txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=30.0)
+                    print(f"[PUBLISH] Background mint completed: {txh[:10]}...")
+                    
+                    # Once mint succeeds, process auction if enabled
+                    if AUCTION_ENABLED and tid:
+                        print(f"[PUBLISH] Background auction processing for token {tid}...")
+                        if _approve_nft_for_auction(tid, wallet_address):
+                            import time
+                            time.sleep(2)
+                            auction_res = _create_auction(tid, wallet_address)
+                            print(f"[PUBLISH] Background auction completed: {auction_res}")
+                    
+                    sys.stdout.flush()
+                except Exception as e:
+                    print(f"[PUBLISH] Background mint/auction failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    sys.stdout.flush()
 
-            # Build explorer URL for UI hyperlink (Sepolia) — allow dry-run hashes too
-            if tx_hash and tx_hash.startswith("0x"):
-                tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
+            # Start mint in background (don't wait)
+            mint_thread = threading.Thread(target=background_mint, daemon=True)
+            mint_thread.start()
+            
+            # Return immediately with pending marker
+            print(f"[PUBLISH] ✅ Returning immediately with pending marker: {tx_hash}")
+            print(f"[PUBLISH] Mint processing in background (check logs later for real tx_hash)...")
+            sys.stdout.flush()
 
-            # ─── Auction (RARE Protocol / SuperRare) ───────────────────────────────
-            if AUCTION_ENABLED and token_id:
-                print(f"[PUBLISH] Auction enabled — proceeding with SuperRare integration")
+            # Build explorer URL for UI hyperlink (Sepolia pending marker URL)
+            tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
+            print(f"[PUBLISH] Pending explorer link: {tx_url}")
+            sys.stdout.flush()
 
-                # Step 1: Approve NFT transfer to SuperRareBazaar
-                if _approve_nft_for_auction(token_id, wallet_address):
-                    import time
-                    time.sleep(2)  # Small delay for approval to propagate
-
-                    # Step 2: Create auction
-                    auction_tx = _create_auction(token_id, wallet_address)
         except Exception as e:
-            print(f"[PUBLISH] ❌ Mint error (SKIPPED): {e}")
+            print(f"[PUBLISH] ❌ Background setup error: {e}")
             import traceback
             traceback.print_exc()
             sys.stdout.flush()
-            tx_hash = "0x_mint_failed"
+            tx_hash = "0x_setup_failed"
             tx_url = None
     else:
         print(f"[PUBLISH] ⚠️  Cannot mint — configure both WALLET_PRIVATE_KEY and NFT_CONTRACT_ADDRESS in .env")
@@ -463,17 +462,6 @@ def publish_node(state: AgentState) -> AgentState:
         tx_hash = "0x_no_config"
         tx_url = None
         sys.stdout.flush()
-        try:
-            # Step 1: Approve NFT transfer to SuperRareBazaar
-            if AUCTION_ENABLED and False:  # Would need token_id
-                if _approve_nft_for_auction(None, "0x0"):
-                    import time
-                    time.sleep(2)  # Small delay for approval to propagate
-
-                    # Step 2: Create auction
-                    auction_tx = _create_auction(None, "0x0")
-        except Exception as e:
-            pass
 
     # Return final state
     if auction_tx:
