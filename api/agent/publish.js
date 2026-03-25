@@ -78,13 +78,25 @@ export default async function handler(req, res) {
         if (walletKey && contractAddress && ipfsUrl) {
             console.log('[publish] Starting blockchain mint...');
             try {
+                // Verify ethers is available
+                if (!ethers || !ethers.JsonRpcProvider) {
+                    throw new Error('ethers.js not loaded properly');
+                }
+                
                 // Connect to RPC
+                console.log('[publish] Connecting to RPC:', rpcUrl);
                 const provider = new ethers.JsonRpcProvider(rpcUrl);
+                console.log('[publish] Creating wallet from private key...');
                 const wallet = new ethers.Wallet(walletKey, provider);
                 
-                console.log('[publish] Wallet:', wallet.address.slice(0, 10) + '...');
+                console.log('[publish] Wallet address:', wallet.address);
+                console.log('[publish] Contract address:', contractAddress);
 
-                // Contract ABI for mint
+                // Get chain ID to verify network
+                const network = await provider.getNetwork();
+                console.log('[publish] Connected to chain:', network.chainId);
+
+                // Contract ABI for mint - matches SomaArt.sol: function mint(address to, string memory uri)
                 const contractABI = [
                     'function mint(address to, string memory uri) public returns (uint256)'
                 ];
@@ -92,40 +104,47 @@ export default async function handler(req, res) {
                 const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
                 // Get nonce
+                console.log('[publish] Fetching nonce...');
                 const nonce = await provider.getTransactionCount(wallet.address);
-                const gasPrice = await provider.getGasPrice();
+                console.log('[publish] Nonce:', nonce);
                 
-                console.log('[publish] Nonce:', nonce, 'Gas price:', ethers.formatUnits(gasPrice, 'gwei'), 'gwei');
+                console.log('[publish] Fetching gas price...');
+                const gasPrice = await provider.getGasPrice();
+                console.log('[publish] Gas price:', ethers.formatUnits(gasPrice, 'gwei'), 'gwei');
 
                 // Estimate gas
-                const gasEstimate = await contract.mint.estimateGas(wallet.address, ipfsUrl);
-                console.log('[publish] Gas estimate:', gasEstimate.toString());
+                console.log('[publish] Estimating gas for mint call...');
+                try {
+                    const gasEstimate = await contract.mint.estimateGas(wallet.address, ipfsUrl);
+                    console.log('[publish] Gas estimate:', gasEstimate.toString());
+                } catch (estimateErr) {
+                    console.log('[publish] Gas estimate failed (will use fixed):', estimateErr.message);
+                }
 
                 // Build and send transaction
-                console.log('[publish] Sending mint transaction...');
+                console.log('[publish] Calling mint(' + wallet.address + ', ' + ipfsUrl + ')');
                 const tx = await contract.mint(wallet.address, ipfsUrl, {
-                    gasLimit: gasEstimate.mul(110n).div(100n), // 10% buffer
-                    gasPrice: gasPrice,
-                    nonce: nonce
+                    gasLimit: 300000n,
+                    gasPrice: gasPrice
                 });
 
                 txHash = tx.hash;
                 txUrl = `https://sepolia.etherscan.io/tx/${txHash}`;
 
-                console.log('[publish] TX SENT:', txHash);
+                console.log('[publish] ✅ TX SENT:', txHash);
                 console.log('[publish] Explorer:', txUrl);
 
-                // Don't wait for receipt - return immediately
-                // Transaction is already in mempool
-
             } catch (mintErr) {
-                console.log('[publish] Mint error:', mintErr.message);
+                console.log('[publish] ❌ MINT ERROR:', mintErr.message);
+                console.log('[publish] Error code:', mintErr.code);
+                console.log('[publish] Stack:', mintErr.stack);
+                
                 // Return IPFS data even if mint failed
                 txHash = 'pending_mint_' + Math.random().toString(36).slice(7);
                 txUrl = null;
             }
         } else {
-            console.log('[publish] Missing: wallet=', !!walletKey, 'contract=', !!contractAddress, 'ipfs=', !!ipfsUrl);
+            console.log('[publish] Missing config: wallet=', !!walletKey, 'contract=', !!contractAddress, 'ipfs=', !!ipfsUrl);
             txHash = 'not_configured';
         }
 
