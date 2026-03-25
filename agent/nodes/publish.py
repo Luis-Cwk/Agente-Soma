@@ -189,9 +189,9 @@ def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 8.0)
             "from": account.address,
             "nonce": nonce,
             "gas": 200000,
-            "maxFeePerGas": w3.to_wei("3", "gwei"),  # Base Mainnet gas price
-            "maxPriorityFeePerGas": w3.to_wei("0.1", "gwei"),  # Base Mainnet priority
-            "chainId": 8453  # Base Mainnet
+            "maxFeePerGas": w3.to_wei("20", "gwei"),  # Sepolia gas price
+            "maxPriorityFeePerGas": w3.to_wei("1", "gwei"),  # Sepolia priority
+            "chainId": 11155111  # Sepolia testnet
         })
 
         if time.monotonic() > deadline:
@@ -200,13 +200,13 @@ def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 8.0)
         print(f"[PUBLISH]   🔏 Signing transaction...")
         sys.stdout.flush()
         signed = account.sign_transaction(tx)
-        print(f"[PUBLISH] ✅ Sending transaction to Base Mainnet...")
+        print(f"[PUBLISH] ✅ Sending transaction to Sepolia...")
         sys.stdout.flush()
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hash_hex = tx_hash.hex()
         print(f"[PUBLISH] ✅ TX SENT: {tx_hash_hex}")
         sys.stdout.flush()
-        print(f"[PUBLISH] 📊 View on Base: https://basescan.org/tx/{tx_hash_hex}")
+        print(f"[PUBLISH] 📊 View on Sepolia: https://sepolia.etherscan.io/tx/{tx_hash_hex}")
         sys.stdout.flush()
         
         # Return immediately - don't wait for receipt (this was causing UI freeze)
@@ -236,7 +236,7 @@ def _approve_nft_for_auction(token_id: int, wallet_address: str) -> bool:
             account = w3.eth.account.from_key(WALLET_PRIVATE_KEY)
             nonce = w3.eth.get_transaction_count(account.address)
         except Exception as e:
-            raise Exception(f"Cannot connect to Base RPC: {str(e)}")
+            raise Exception(f"Cannot connect to Sepolia RPC: {str(e)}")
         contract = w3.eth.contract(
             address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS),
             abi=MINT_ABI
@@ -250,9 +250,9 @@ def _approve_nft_for_auction(token_id: int, wallet_address: str) -> bool:
             "from": account.address,
             "nonce": w3.eth.get_transaction_count(account.address),
             "gas": 100000,
-            "maxFeePerGas": w3.eth.gas_price,
-            "maxPriorityFeePerGas": w3.to_wei("0.001", "gwei"),
-            "chainId": 8453
+            "maxFeePerGas": w3.to_wei("20", "gwei"),
+            "maxPriorityFeePerGas": w3.to_wei("1", "gwei"),
+            "chainId": 11155111  # Sepolia
         })
 
         signed = account.sign_transaction(tx)
@@ -300,9 +300,9 @@ def _create_auction(token_id: int, wallet_address: str) -> str | None:
             "from": account.address,
             "nonce": w3.eth.get_transaction_count(account.address),
             "gas": 300000,
-            "maxFeePerGas": w3.eth.gas_price,
-            "maxPriorityFeePerGas": w3.to_wei("0.001", "gwei"),
-            "chainId": 8453
+            "maxFeePerGas": w3.to_wei("20", "gwei"),
+            "maxPriorityFeePerGas": w3.to_wei("1", "gwei"),
+            "chainId": 11155111  # Sepolia
         })
 
         signed = account.sign_transaction(tx)
@@ -430,9 +430,9 @@ def publish_node(state: AgentState) -> AgentState:
 
             print(f"[PUBLISH] ✅ NFT minted: {tx_hash[:10]}... (token_id: {token_id})")
 
-            # Build explorer URL for UI hyperlink (Base Mainnet) — allow dry-run hashes too
+            # Build explorer URL for UI hyperlink (Sepolia) — allow dry-run hashes too
             if tx_hash and tx_hash.startswith("0x"):
-                tx_url = f"https://basescan.org/tx/{tx_hash}"
+                tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
 
             # ─── Auction (RARE Protocol / SuperRare) ───────────────────────────────
             if AUCTION_ENABLED and token_id:
@@ -489,7 +489,7 @@ def publish_node(state: AgentState) -> AgentState:
 
     # Ensure tx_url exists even on skipped/dry-run mints so the UI shows a link
     if (not tx_url) and tx_hash and tx_hash.startswith("0x"):
-        tx_url = f"https://basescan.org/tx/{tx_hash}"
+        tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
 
     print(f"[PUBLISH] Final tx_hash: {tx_hash}")
     print(f"[PUBLISH] Final tx_url: {tx_url}")
