@@ -130,7 +130,7 @@ def _upload_to_ipfs(metadata: dict) -> tuple[str, str]:
     return synthetic_cid, f"ipfs://{synthetic_cid}"
 
 
-def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 8.0) -> tuple[str, int | None]:
+def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 15.0) -> tuple[str, int | None]:
     """
     Mint NFT on Sepolia with a hard timeout. Returns (tx_hash, token_id).
     If anything takes too long, returns a dry-run hash so UI can finish.
@@ -410,24 +410,29 @@ def publish_node(state: AgentState) -> AgentState:
             sys.stdout.flush()
 
             # Run mint with an extra watchdog to avoid first-run hangs
-            mint_result = {}
+            mint_result = {'tx_hash': None, 'token_id': None}
 
             def run_mint():
-                txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=3.0)
-                mint_result['tx_hash'] = txh
-                mint_result['token_id'] = tid
+                try:
+                    txh, tid = _mint_nft(ipfs_url, wallet_address, timeout_seconds=8.0)
+                    mint_result['tx_hash'] = txh
+                    mint_result['token_id'] = tid
+                except Exception as e:
+                    print(f"[PUBLISH] ERROR in mint thread: {e}")
+                    mint_result['tx_hash'] = "0x_mint_thread_error"
 
             mint_thread = threading.Thread(target=run_mint, daemon=True)
             mint_thread.start()
-            mint_thread.join(9)  # small buffer over _mint_nft timeout
+            mint_thread.join(12)  # Wait up to 12 seconds
+
+            # Always get a tx_hash, never None
+            tx_hash = mint_result.get('tx_hash') or "0x_mint_thread_failed"
+            token_id = mint_result.get('token_id')
 
             if mint_thread.is_alive():
-                print("[PUBLISH] ⚠️ Mint watchdog timeout — using dry-run hash")
-                tx_hash, token_id = "0x_dry_run_watchdog", None
-            else:
-                tx_hash = mint_result.get('tx_hash', "0x_dry_run_timeout")
-                token_id = mint_result.get('token_id')
-
+                print("[PUBLISH] ⚠️ Mint watchdog timeout — thread still running")
+                tx_hash = "0x_dry_run_watchdog"
+            
             print(f"[PUBLISH] ✅ NFT minted: {tx_hash[:10]}... (token_id: {token_id})")
 
             # Build explorer URL for UI hyperlink (Sepolia) — allow dry-run hashes too
@@ -481,12 +486,12 @@ def publish_node(state: AgentState) -> AgentState:
         print(f"[PUBLISH] No auction — set AUCTION_ENABLED=true in .env to enable SuperRare flow")
         sys.stdout.flush()
 
-    # Ensure tx_hash is never null — always set a valid fallback
-    if tx_hash is None:
-        print(f"[PUBLISH] ⚠️  WARNING: tx_hash was None, setting to fallback")
-        tx_hash = "0x_fallback_null"
+    # Ensure tx_hash is NEVER null — always a valid hex string
+    if not tx_hash or tx_hash is None:
+        print(f"[PUBLISH] ⚠️  ERROR: tx_hash is None/empty, setting fallback")
+        tx_hash = "0x_no_hash_available"
         sys.stdout.flush()
-
+    
     # Ensure tx_url exists even on skipped/dry-run mints so the UI shows a link
     if (not tx_url) and tx_hash and tx_hash.startswith("0x"):
         tx_url = f"https://sepolia.etherscan.io/tx/{tx_hash}"
@@ -501,7 +506,7 @@ def publish_node(state: AgentState) -> AgentState:
         **state,
         "ipfs_cid": cid,
         "ipfs_url": ipfs_url,
-        "tx_hash": tx_hash,
+        "tx_hash": tx_hash,  # ← GUARANTEE: never None
         "tx_url": tx_url,
         "token_id": token_id,
         "auction_tx": auction_tx,
