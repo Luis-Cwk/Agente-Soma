@@ -831,10 +831,20 @@ async function startCapture() {
 
 function onPoseResults(results) {
     if (!capturing || !results.poseLandmarks) return;
-    frameBuffer.push([...results.poseLandmarks]);
 
     const canvasEl = document.getElementById('canvasEl');
     const ctx = canvasEl.getContext('2d');
+    
+    // ─── Normalize landmarks to canvas size ────────────────────────────
+    const normalizedLandmarks = results.poseLandmarks.map(lm => ({
+        x: lm.x * canvasEl.width,
+        y: lm.y * canvasEl.height,
+        z: lm.z,
+        visibility: lm.visibility
+    }));
+    
+    // Save normalized landmarks for Laban analysis
+    frameBuffer.push(normalizedLandmarks);
     
     // ─── Clear & Background ────────────────────────────────────────
     ctx.fillStyle = '#000';
@@ -854,7 +864,7 @@ function onPoseResults(results) {
     particles.forEach(p => p.display(ctx));
 
     // ─── Check Body Collisions & Update ASCII ──────────────────────
-    checkBodyCollisions(results.poseLandmarks, canvasEl.width, canvasEl.height);
+    checkBodyCollisions(normalizedLandmarks, canvasEl.width, canvasEl.height);
     
     for (let ascii of asciiChars) {
         ascii.update();
@@ -867,9 +877,9 @@ function onPoseResults(results) {
     
     // Draw connections
     for (const [a, b] of POSE_CONNECTIONS) {
-        if (results.poseLandmarks[a] && results.poseLandmarks[b]) {
-            const lmA = results.poseLandmarks[a];
-            const lmB = results.poseLandmarks[b];
+        if (normalizedLandmarks[a] && normalizedLandmarks[b]) {
+            const lmA = normalizedLandmarks[a];
+            const lmB = normalizedLandmarks[b];
             ctx.beginPath();
             ctx.moveTo(lmA.x, lmA.y);
             ctx.lineTo(lmB.x, lmB.y);
@@ -878,7 +888,7 @@ function onPoseResults(results) {
     }
 
     // Draw landmarks with glow
-    for (const lm of results.poseLandmarks) {
+    for (const lm of normalizedLandmarks) {
         if (!lm) continue;
         for (let i = 3; i > 0; i--) {
             ctx.fillStyle = `rgba(100,200,255,${14 / i})`;
@@ -897,7 +907,7 @@ function onPoseResults(results) {
 
     // Random particle spawn
     if (Math.random() < 0.2) {
-        const randomLm = results.poseLandmarks[Math.floor(Math.random() * results.poseLandmarks.length)];
+        const randomLm = normalizedLandmarks[Math.floor(Math.random() * normalizedLandmarks.length)];
         if (randomLm) {
             particles.push(new Particle(randomLm.x, randomLm.y));
         }
