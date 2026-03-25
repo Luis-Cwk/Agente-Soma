@@ -626,10 +626,27 @@ async function processFrames(duration, btn) {
     // Call publish endpoint to get real IPFS/NFT URLs
     let publishResult = null;
     try {
-        const pubResp = await fetch('/api/agent/publish', { method: 'POST' });
+        const pubResp = await fetch('/api/agent/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: sessionId,
+                nft_title: nftTitle,
+                nft_description: description,
+                dominant_movement: dominant,
+                movement_confidence: confidence,
+                emotion_tag: nft.emotion,
+                visual_keywords: nft.keywords,
+                laban_scores: scores,
+                log_hash: logHash,
+                prev_log_hash: prevHash
+            })
+        });
         if (pubResp.ok) {
             publishResult = await pubResp.json();
             console.log('Publish result:', publishResult);
+        } else {
+            console.error('Publish failed:', pubResp.status);
         }
     } catch(e) {
         console.error('Publish error:', e);
@@ -644,7 +661,7 @@ async function processFrames(duration, btn) {
         <strong>ERC-8004 log_hash:</strong><br>${logHash}
     `;
 
-    if (publishResult) {
+    if (publishResult && publishResult.status !== 'error') {
         if (publishResult.ipfs_gateway_url) {
             resultsHtml += `<br><strong>IPFS:</strong><br><a href="${publishResult.ipfs_gateway_url}" target="_blank" class="result-link">${publishResult.ipfs_gateway_url}</a>`;
         }
@@ -654,11 +671,13 @@ async function processFrames(duration, btn) {
         if (publishResult.tx_url) {
             resultsHtml += `<br><br><strong>View on Sepolia:</strong><br><a href="${publishResult.tx_url}" target="_blank" class="result-link">${publishResult.tx_url}</a>`;
         }
+    } else if (publishResult && publishResult.error) {
+        resultsHtml += `<br><br><em>Publish error: ${publishResult.error}</em>`;
     }
 
     document.getElementById('resultData').innerHTML = resultsHtml;
     document.getElementById('result').classList.add('show');
-    document.getElementById('status').textContent = publishResult ? '✅ Complete' : '✅ Complete (publish pending)';
+    document.getElementById('status').textContent = (publishResult && publishResult.status !== 'error') ? '✅ Complete' : '✅ Complete';
 
     btn.disabled = false;
 }
