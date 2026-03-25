@@ -132,55 +132,87 @@ def _upload_to_ipfs(metadata: dict) -> tuple[str, str]:
 
 def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 15.0) -> tuple[str, int | None]:
     """
-    Mint NFT on Sepolia with a hard timeout. Returns (tx_hash, token_id).
-    If anything takes too long, returns a dry-run hash so UI can finish.
+    Optimized Sepolia minting - learns from videodanza-nft pattern.
+    Minimizes RPC calls, faster gas, better error handling.
     """
     if not WALLET_PRIVATE_KEY or not NFT_CONTRACT_ADDRESS:
-        print("[PUBLISH]   ⚙️ Wallet/contract not configured — skipping mint")
+        print("[PUBLISH] ⚙️ Wallet/contract not configured — skipping mint")
         return "0x_dry_run_tx_hash", None
 
     deadline = time.monotonic() + timeout_seconds
 
     try:
         from web3 import Web3
-        import requests
         
-        print(f"[PUBLISH]   🔗 Connecting to Sepolia RPC...")
+        print(f"[PUBLISH] 🔗 Initializing Web3 (Sepolia)...")
         sys.stdout.flush()
         
-        # Use shorter timeout for RPC calls
-        session = requests.Session()
-        session.timeout = 3  # shorter timeout for RPC requests
-
-        w3 = Web3(Web3.HTTPProvider(BASE_RPC_URL, request_kwargs={"timeout": 4}))
-
-        # Skip is_connected() check - try actual operation instead
-        try:
-            print(f"[PUBLISH]   🔐 Loading wallet account...")
-            sys.stdout.flush()
-            account = w3.eth.account.from_key(WALLET_PRIVATE_KEY)
-            
-            # Test connection by getting nonce
-            print(f"[PUBLISH]   📊 Fetching nonce...")
-            sys.stdout.flush()
-            nonce = w3.eth.get_transaction_count(account.address)
-            print(f"[PUBLISH]   ✓ Nonce: {nonce}")
-            sys.stdout.flush()
-        except Exception as e:
-            raise Exception(f"RPC connection failed: {str(e)[:100]}")
+        # Try multiple RPC endpoints for redundancy
+        rpc_endpoints = [
+            BASE_RPC_URL,  # Primary (from config)
+            "https://1rpc.io/sepolia",  # Fallback 1
+            "https://eth-sepolia.public.blastapi.io",  # Fallback 2
+        ]
+        
+        w3 = None
+        for rpc_url in rpc_endpoints:
+            try:
+                w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 5}))
+                # Quick test
+                w3.eth.get_transaction_count("0x0000000000000000000000000000000000000000")
+                print(f"[PUBLISH]   ✓ Connected to: {rpc_url[:30]}...")
+                sys.stdout.flush()
+                break
+            except Exception as e:
+                print(f"[PUBLISH]   ⚠️  RPC failed: {rpc_url[:30]}... ({str(e)[:40]})")
+                continue
+        
+        if not w3 or not w3.is_connected():
+            raise Exception("All RPC endpoints failed")
 
         if time.monotonic() > deadline:
-            raise Exception("Mint timed out before building tx")
+            raise Exception("Timed out connecting to RPC")
         
-        print(f"[PUBLISH]   📝 Building contract interface...")
+        # Load account
+        print(f"[PUBLISH] 🔐 Loading wallet...")
+        sys.stdout.flush()
+        account = w3.eth.account.from_key(WALLET_PRIVATE_KEY)
+        print(f"[PUBLISH]   Wallet: {account.address[:10]}...")
+        sys.stdout.flush()
+
+        # Get nonce (CRITICAL - one RPC call)
+        print(f"[PUBLISH] 📊 Fetching nonce...")
+        sys.stdout.flush()
+        nonce = w3.eth.get_transaction_count(account.address)
+        print(f"[PUBLISH]   Nonce: {nonce}")
+        sys.stdout.flush()
+
+        if time.monotonic() > deadline:
+            raise Exception("Timed out fetching nonce")
+        
+        # Build contract interface (no RPC call)
+        print(f"[PUBLISH] 📋 Building contract interface...")
         sys.stdout.flush()
         contract = w3.eth.contract(
             address=Web3.to_checksum_address(NFT_CONTRACT_ADDRESS),
             abi=MINT_ABI
         )
 
-        # Build and send mint transaction
-        print(f"[PUBLISH]   ⚡ Building mint transaction...")
+        # Get current gas price (Sepolia is cheap)
+        print(f"[PUBLISH] ⛽ Fetching gas price...")
+        sys.stdout.flush()
+        gas_price = w3.eth.gas_price
+        base_fee = int(gas_price * 1.2)
+        priority_fee = w3.to_wei("1", "gwei")  # Sepolia priority
+        
+        print(f"[PUBLISH]   Base fee: {w3.from_wei(base_fee, 'gwei'):.2f} gwei")
+        sys.stdout.flush()
+
+        if time.monotonic() > deadline:
+            raise Exception("Timed out fetching gas price")
+        
+        # Build transaction
+        print(f"[PUBLISH] 🏗️  Building mint transaction...")
         sys.stdout.flush()
         tx = contract.functions.mint(
             account.address,
@@ -188,37 +220,45 @@ def _mint_nft(token_uri: str, wallet_address: str, timeout_seconds: float = 15.0
         ).build_transaction({
             "from": account.address,
             "nonce": nonce,
-            "gas": 200000,
-            "maxFeePerGas": w3.to_wei("20", "gwei"),  # Sepolia gas price
-            "maxPriorityFeePerGas": w3.to_wei("1", "gwei"),  # Sepolia priority
-            "chainId": 11155111  # Sepolia testnet
+            "gas": 150000,  # Reduced from 200k (SomaArt mint is simple)
+            "maxFeePerGas": base_fee,
+            "maxPriorityFeePerGas": priority_fee,
+            "chainId": 11155111  # Sepolia
         })
 
         if time.monotonic() > deadline:
-            raise Exception("Mint timed out before signing")
+            raise Exception("Timed out building transaction")
 
-        print(f"[PUBLISH]   🔏 Signing transaction...")
+        # Sign
+        print(f"[PUBLISH] 🔏 Signing transaction...")
         sys.stdout.flush()
         signed = account.sign_transaction(tx)
-        print(f"[PUBLISH] ✅ Sending transaction to Sepolia...")
+
+        if time.monotonic() > deadline:
+            raise Exception("Timed out signing transaction")
+
+        # Send
+        print(f"[PUBLISH] 📤 Sending transaction...")
         sys.stdout.flush()
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hash_hex = tx_hash.hex()
-        print(f"[PUBLISH] ✅ TX SENT: {tx_hash_hex}")
-        sys.stdout.flush()
-        print(f"[PUBLISH] 📊 View on Sepolia: https://sepolia.etherscan.io/tx/{tx_hash_hex}")
+        
+        print(f"[PUBLISH] ✅ MINT SUBMITTED: {tx_hash_hex}")
+        print(f"[PUBLISH] 🔗 https://sepolia.etherscan.io/tx/{tx_hash_hex}")
         sys.stdout.flush()
         
-        # Return immediately - don't wait for receipt (this was causing UI freeze)
-        # TX is already on-chain, confirmation happens in background
         return tx_hash_hex, None
 
     except ImportError:
-        print("[PUBLISH] ⚠️ web3 not installed — skipping on-chain mint")
-        return "0x_web3_not_installed", None
+        print("[PUBLISH] ⚠️ web3.py not installed")
+        return "0x_web3_missing", None
     except Exception as e:
-        print(f"[PUBLISH] ❌ Mint error (fallback dry-run): {str(e)[:150]}")
-        return "0x_dry_run_timeout", None
+        error_msg = str(e)[:150]
+        print(f"[PUBLISH] ❌ MINT FAILED: {error_msg}")
+        sys.stdout.flush()
+        
+        # Return a fallback hash so UI doesn't show null
+        return "0x_mint_failed_" + str(int(time.time()))[-4:], None
 
 
 def _approve_nft_for_auction(token_id: int, wallet_address: str) -> bool:
