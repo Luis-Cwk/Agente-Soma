@@ -107,6 +107,254 @@ Open **http://localhost:5000** in your browser → Click **▶ START CAPTURE** �
 
 ---
 
+## 🖥️ Local Setup Guide
+
+### Prerequisites
+
+- **Python 3.10+** (3.11 recommended)
+- **Node.js 18+** (for development, optional for running)
+- **Git**
+- A modern **web browser** with webcam access
+- **4GB+ RAM** recommended (for MediaPipe model)
+
+### Step 1: Clone Repository
+
+```bash
+git clone https://github.com/Luis-Cwk/Agente-Soma.git
+cd Agente-Soma
+```
+
+### Step 2: Create Python Virtual Environment
+
+**Windows:**
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+**macOS/Linux:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### Step 3: Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**⚠️ Note:** If you get NumPy errors, run:
+```bash
+pip install "numpy<2"
+```
+
+### Step 4: Configure Environment Variables
+
+Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your credentials:
+
+```env
+# Flask
+FLASK_ENV=development
+FLASK_DEBUG=true
+PORT=5000
+
+# LLM (Ollama Cloud)
+OLLAMA_API_KEY=your_ollama_key_here
+
+# IPFS Storage (Pinata)
+PINATA_API_KEY=your_pinata_api_key
+PINATA_SECRET_KEY=your_pinata_secret_key
+
+# Blockchain (Sepolia Testnet for testing)
+WALLET_PRIVATE_KEY=your_wallet_private_key
+NFT_CONTRACT_ADDRESS=0x3D1A31542D49b1759FBD1861991D1D6742C8d340
+BASE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+```
+
+**📚 See [SETUP.md](SETUP.md) for detailed credential setup instructions.**
+
+### Step 5: Test Dependencies
+
+Before running the full app, test that all imports work:
+
+```bash
+python -c "import mediapipe; import langgraph; import web3; print('✅ All dependencies OK')"
+```
+
+### Step 6: Start the Application
+
+```bash
+python -u app.py
+```
+
+You should see:
+```
+ * Running on http://127.0.0.1:5000
+ * Press CTRL+C to quit
+```
+
+### Step 7: Open Web UI
+
+Open your browser and navigate to:
+```
+http://localhost:5000
+```
+
+You'll see the SomaAgent interface with:
+- **Camera preview** area
+- **Start Capture** button
+- **Duration selector** (default 15 seconds)
+- **Live log terminal**
+- **Results panel** (shows NFT details after capture)
+
+### Step 8: Run Your First Capture
+
+1. Click **▶ START CAPTURE**
+2. Allow browser to access your webcam
+3. Stand in frame and **move naturally for ~15 seconds**
+4. Wait for analysis pipeline to complete
+5. View your generated NFT title, metadata, and IPFS link
+
+---
+
+## 🔧 Troubleshooting Local Execution
+
+### ❌ "MediaPipe unavailable: File exists"
+
+**Problem:** You're running multiple captures in quick succession, and MediaPipe instances are conflicting.
+
+**Solution:** 
+- Reload the browser page (Ctrl+R or Cmd+R) before starting a new capture
+- Or wait 5 seconds after one capture completes before clicking "Start Capture" again
+- The app now has automatic cleanup, but browser reload ensures complete reset
+
+### ❌ "ModuleNotFoundError: No module named 'mediapipe'"
+
+**Problem:** Dependencies not installed or wrong virtual environment.
+
+**Solution:**
+```bash
+# Ensure venv is activated
+.venv\Scripts\activate  # Windows
+# or: source .venv/bin/activate  # macOS/Linux
+
+# Reinstall dependencies
+pip install -r requirements.txt
+```
+
+### ❌ "Cannot open camera: Permission denied"
+
+**Problem:** Browser doesn't have webcam permission.
+
+**Solution:**
+1. Check your OS camera permission settings
+2. On Windows: Settings → Privacy & Security → Camera → Allow apps
+3. On macOS: System Settings → Privacy & Security → Camera
+4. Reload browser and try again
+
+### ❌ "IPFS timeout" or "Pinata API error"
+
+**Problem:** Missing or invalid `PINATA_API_KEY` in `.env`.
+
+**Solution:**
+1. Go to [pinata.cloud](https://pinata.cloud) and sign up (free tier available)
+2. Create API key and secret
+3. Add to `.env`:
+   ```env
+   PINATA_API_KEY=your_key_here
+   PINATA_SECRET_KEY=your_secret_here
+   ```
+4. Restart `python app.py`
+
+### ❌ "Transaction failed" or "tx_hash: null"
+
+**Problem:** Blockchain credentials missing or invalid.
+
+**Solution:**
+1. Check `WALLET_PRIVATE_KEY` is set correctly in `.env`
+2. Verify wallet has ETH on Sepolia (use [Sepolia faucet](https://www.sepoliafaucet.net/))
+3. Use testnet first: `BASE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com`
+4. Check gas prices aren't too high
+
+### ❌ "Port 5000 already in use"
+
+**Problem:** Another process is using port 5000.
+
+**Solution:**
+```bash
+# Windows - find and kill process on port 5000
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+
+# macOS/Linux
+lsof -i :5000
+kill -9 <PID>
+
+# Or use different port
+PORT=5001 python app.py
+```
+
+---
+
+## ✅ Full Working Example
+
+This is what a successful full cycle looks like in the terminal:
+
+```
+$ python -u app.py
+ * Running on http://127.0.0.1:5000
+
+# [Browser: Click "Start Capture" and move for 15s]
+
+[SomaAgent] Initializing capture pipeline...
+[perception] Visual grid initialized ✓
+[perception] Camera stream active ✓
+[perception] Loading MediaPipe Pose...
+[perception] MediaPipe Pose loaded (33 landmarks) ✓
+[perception] Recording movement for 15s — move naturally
+[reasoning] Classifying Laban effort qualities...
+[reasoning] Dominant movement: flotar (confidence: 0.175)
+[reasoning] Calling LLM for artistic interpretation...
+[reasoning] LLM response: "Ethereal Drift"
+[log] Building ERC-8004 hash chain entry...
+[log] ERC-8004-v1 entry recorded ✓
+[SomaAgent] ✅ Pipeline complete
+[publish] Uploading to IPFS...
+[publish] IPFS success: QmaCWtBdaDMt87SaQhnYAxS1mV3296riqUQZtUb5HyRwKA
+[publish] Starting blockchain mint...
+[publish] ✅ TX SENT: 0x6af8e8120a7d730584e669f26b7e3f9f3ae5b02a9296160e3998bc2e5d9d7a91
+```
+
+**Then in browser results panel:**
+```
+✅ Motion Captured & NFT Minted
+NFT Title: Ethereal Drift
+Movement: flotar (17.5% confidence)
+Keywords: ethereal, lavender, particles
+Emotion: peace
+
+IPFS:
+https://black-persistent-fly-380.mypinata.cloud/ipfs/QmaCWtBdaDMt87SaQhnYAxS1mV3296riqUQZtUb5HyRwKA
+
+Transaction Hash:
+0x6af8e8120a7d730584e669f26b7e3f9f3ae5b02a9296160e3998bc2e5d9d7a91
+
+View on Sepolia:
+https://sepolia.etherscan.io/tx/0x6af8e8120a7d730584e669f26b7e3f9f3ae5b02a9296160e3998bc2e5d9d7a91
+```
+
+✅ **Success!** Your first SomaAgent NFT has been minted!
+
+---
+
 ## 🏗️ Architecture
 
 ### LangGraph State Machine
