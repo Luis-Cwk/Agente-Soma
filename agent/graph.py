@@ -2,19 +2,27 @@
 SomaAgent — LangGraph Orchestrator
 Defines the autonomous agent pipeline as a directed state graph.
 
-Flow: perception → reasoning → log → publish → END
+Flow: perception → multimodal_fusion → reasoning → log → publish → END
 """
 from langgraph.graph import StateGraph, END
 
 from agent.state import AgentState
 from agent.nodes.perception import perception_node
+from agent.nodes.multimodal_fusion import multimodal_fusion_node
 from agent.nodes.reasoning import reasoning_node
 from agent.nodes.log_node import log_node
 from agent.nodes.publish import publish_node
 
 
 def _route_after_perception(state: AgentState) -> str:
-    """Route: if perception failed, go to end. Otherwise reason."""
+    """Route: if perception failed, go to end. Otherwise fuse multimodal data."""
+    if state.get("status") == "error":
+        return "end"
+    return "multimodal_fusion"
+
+
+def _route_after_fusion(state: AgentState) -> str:
+    """Route: if fusion failed, go to end. Otherwise reason."""
     if state.get("status") == "error":
         return "end"
     return "reasoning"
@@ -44,6 +52,7 @@ def build_graph() -> StateGraph:
 
     # ─── Register Nodes ───────────────────────────────────────────────────────
     graph.add_node("perception", perception_node)
+    graph.add_node("multimodal_fusion", multimodal_fusion_node)
     graph.add_node("reasoning",  reasoning_node)
     graph.add_node("log",        log_node)
     graph.add_node("publish",    publish_node)
@@ -55,6 +64,12 @@ def build_graph() -> StateGraph:
     graph.add_conditional_edges(
         "perception",
         _route_after_perception,
+        {"multimodal_fusion": "multimodal_fusion", "end": END}
+    )
+
+    graph.add_conditional_edges(
+        "multimodal_fusion",
+        _route_after_fusion,
         {"reasoning": "reasoning", "end": END}
     )
 

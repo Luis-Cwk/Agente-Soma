@@ -15,10 +15,19 @@ load_dotenv(dotenv_path=ENV_FILE, verbose=False, override=True)
 LOG_DIR = BASE_DIR / os.getenv("LOG_DIR", "logs")
 LOG_DIR.mkdir(exist_ok=True)
 
-# ─── LLM (Ollama Cloud) ───────────────────────────────────────
+# ─── LLM Providers ────────────────────────────────────────────
+# Provider selection: "ollama" or "openrouter"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").lower()
+
+# Ollama (local)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_API_KEY  = os.getenv("OLLAMA_API_KEY", "")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "glm-5")
+
+# OpenRouter (cloud-based)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-3.5-turbo")  # or "meta-llama/llama-2-7b-chat", etc.
 
 # ─── IPFS / Pinata ────────────────────────────────────────────
 PINATA_API_KEY    = os.getenv("PINATA_API_KEY", "")

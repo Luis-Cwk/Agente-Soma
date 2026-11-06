@@ -1,6 +1,6 @@
 """
 SomaAgent — Reasoning Node
-Uses Ollama LLM to interpret Laban movement data and generate artistic interpretations,
+Uses LLM (Ollama or OpenRouter) to interpret Laban movement data and generate artistic interpretations,
 NFT metadata, and autonomous minting decisions.
 """
 import sys
@@ -10,10 +10,79 @@ import threading
 
 sys.path.insert(0, str(pathlib.Path(__file__).parents[2]))
 from agent.state import AgentState
-from config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_API_KEY
+from config import (
+    OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_API_KEY,
+    OPENROUTER_API_KEY, OPENROUTER_BASE_URL, OPENROUTER_MODEL,
+    LLM_PROVIDER
+)
 
 class TimeoutException(Exception):
     pass
+
+
+def _call_openrouter(prompt: str, timeout_sec=10) -> str:
+    """Call OpenRouter via LangChain ChatOpenAI. Returns response text or empty string if timeout."""
+    try:
+        from langchain_openai import ChatOpenAI
+
+        if not OPENROUTER_API_KEY:
+            print(f"[REASONING]   ℹ️ OpenRouter API key not configured")
+            return ""
+
+        result = []
+        exception = [None]
+
+        def call_with_timeout():
+            try:
+                llm = ChatOpenAI(
+                    model_name=OPENROUTER_MODEL,
+                    api_key=OPENROUTER_API_KEY,
+                    base_url=OPENROUTER_BASE_URL,
+                    temperature=0.7,
+                    max_tokens=150,
+                )
+                response = llm.invoke(prompt)
+                result.append(response.content)
+            except Exception as e:
+                exception[0] = e
+
+        thread = threading.Thread(target=call_with_timeout, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout_sec)
+
+        if thread.is_alive():
+            print(f"[REASONING]   ⏱️ OpenRouter timeout ({timeout_sec}s) - skipping")
+            return ""
+
+        if exception[0]:
+            print(f"[REASONING]   ❌ OpenRouter error - skipping")
+            return ""
+
+        return result[0] if result else ""
+
+    except ImportError:
+        print("[REASONING]   ℹ️ langchain-openai not installed - using fallback")
+        return ""
+    except Exception as e:
+        print(f"[REASONING]   ❌ OpenRouter init error - using fallback")
+        return ""
+
+
+def _call_llm(prompt: str, timeout_sec=10) -> str:
+    """
+    Call configured LLM provider (Ollama or OpenRouter).
+    Provider selected via LLM_PROVIDER config.
+    """
+    provider = LLM_PROVIDER.lower()
+    
+    if provider == "openrouter":
+        print(f"[REASONING]   🌐 Using OpenRouter ({OPENROUTER_MODEL})")
+        return _call_openrouter(prompt, timeout_sec=timeout_sec)
+    else:
+        # Default to Ollama
+        print(f"[REASONING]   🔧 Using Ollama ({OLLAMA_MODEL})")
+        return _call_ollama(prompt, timeout_sec=timeout_sec)
+
 
 
 def _call_ollama(prompt: str, timeout_sec=5) -> str:
@@ -113,7 +182,7 @@ def reasoning_node(state: AgentState) -> AgentState:
     interpretation_prompt = f"""In 1-2 poetic sentences, interpret this Laban movement: {dominant} ({confidence:.0%} confidence).
 Focus on emotion and visual metaphor. Be brief."""
     
-    artistic_interpretation = _call_ollama(interpretation_prompt, timeout_sec=3)
+    artistic_interpretation = _call_llm(interpretation_prompt, timeout_sec=8)
     
     if not artistic_interpretation or artistic_interpretation == "":
         print(f"[REASONING] ↪️ LLM unavailable, using pre-trained description")

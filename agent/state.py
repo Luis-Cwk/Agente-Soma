@@ -38,6 +38,13 @@ class AgentState(TypedDict):
     auction_tx: Optional[str]               # Auction creation transaction
     auction_enabled: Optional[bool]         # Whether auctions are enabled
 
+    # ─── Multimodal Fusion (NEW) ──────────────────────────────
+    visual_context: Optional[Dict[str, Any]]    # Body openness, emotional intensity, etc.
+    combined_rarity_score: Optional[float]      # Fused rarity (0.0-1.0)
+    rarity_tier: Optional[str]                  # "EPIC" | "RARE" | "UNCOMMON" | "COMMON"
+    suggested_price_eth: Optional[float]        # Suggested mint price in ETH
+    enriched_context: Optional[str]             # Full context prompt for LLM
+
     # ─── Control ──────────────────────────────────────────────
     error: Optional[str]                    # Error message if any node fails
     status: Optional[str]                   # "running" | "done" | "error"
