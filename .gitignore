@@ -64,3 +64,6 @@ test_*.py
 *.bak-*
 *.pem
 *.key
+
+# videos de demo pesados
+DEMO/*.mov
