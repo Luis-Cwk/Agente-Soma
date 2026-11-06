@@ -54,3 +54,13 @@ Thumbs.db
 test_*.py
 /tmp/
 .vercel
+
+# === Proteccion de credenciales (agregado 2026-11) ===
+.env
+.env.*
+!.env.example
+.env.bak*
+.env.pre-*
+*.bak-*
+*.pem
+*.key
